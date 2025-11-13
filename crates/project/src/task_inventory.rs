@@ -10,7 +10,7 @@ use std::{
 
 use anyhow::Result;
 use collections::{HashMap, HashSet, VecDeque};
-use dap::DapRegistry;
+// use dap::DapRegistry; // Removed: debugger not needed in terminal fork
 use gpui::{App, AppContext as _, Context, Entity, SharedString, Task, WeakEntity};
 use itertools::Itertools;
 use language::{
@@ -301,44 +301,46 @@ impl Inventory {
 
         let last_scheduled_scenarios = self.last_scheduled_scenarios.iter().cloned().collect();
 
-        let adapter = task_contexts.location().and_then(|location| {
-            let (file, language) = {
-                let buffer = location.buffer.read(cx);
-                (buffer.file(), buffer.language())
-            };
-            let language_name = language.as_ref().map(|l| l.name());
-            let adapter = language_settings(language_name, file, cx)
-                .debuggers
-                .first()
-                .map(SharedString::from)
-                .or_else(|| {
-                    language.and_then(|l| l.config().debuggers.first().map(SharedString::from))
-                });
-            adapter.map(|adapter| (adapter, DapRegistry::global(cx).locators()))
-        });
+        // Removed: debugger not needed in terminal fork
+        // let adapter = task_contexts.location().and_then(|location| {
+        //     let (file, language) = {
+        //         let buffer = location.buffer.read(cx);
+        //         (buffer.file(), buffer.language())
+        //     };
+        //     let language_name = language.as_ref().map(|l| l.name());
+        //     let adapter = language_settings(language_name, file, cx)
+        //         .debuggers
+        //         .first()
+        //         .map(SharedString::from)
+        //         .or_else(|| {
+        //             language.and_then(|l| l.config().debuggers.first().map(SharedString::from))
+        //         });
+        //     adapter.map(|adapter| (adapter, DapRegistry::global(cx).locators()))
+        // });
         cx.background_spawn(async move {
-            if let Some((adapter, locators)) = adapter {
-                for (kind, task) in
-                    lsp_tasks
-                        .into_iter()
-                        .chain(current_resolved_tasks.into_iter().filter(|(kind, _)| {
-                            add_current_language_tasks
-                                || !matches!(kind, TaskSourceKind::Language { .. })
-                        }))
-                {
-                    let adapter = adapter.clone().into();
-
-                    for locator in locators.values() {
-                        if let Some(scenario) = locator
-                            .create_scenario(task.original_task(), task.display_label(), &adapter)
-                            .await
-                        {
-                            scenarios.push((kind, scenario));
-                            break;
-                        }
-                    }
-                }
-            }
+            // Debugger scenarios removed - not needed in terminal fork
+            // if let Some((adapter, locators)) = adapter {
+            //     for (kind, task) in
+            //         lsp_tasks
+            //             .into_iter()
+            //             .chain(current_resolved_tasks.into_iter().filter(|(kind, _)| {
+            //                 add_current_language_tasks
+            //                     || !matches!(kind, TaskSourceKind::Language { .. })
+            //             }))
+            //     {
+            //         let adapter = adapter.clone().into();
+            //
+            //         for locator in locators.values() {
+            //             if let Some(scenario) = locator
+            //                 .create_scenario(task.original_task(), task.display_label(), &adapter)
+            //                 .await
+            //             {
+            //                 scenarios.push((kind, scenario));
+            //                 break;
+            //             }
+            //         }
+            //     }
+            // }
             (last_scheduled_scenarios, scenarios)
         })
     }
