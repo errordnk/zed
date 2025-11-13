@@ -184,6 +184,7 @@ agent_settings = { path = "crates/agent_settings" }
 agent_servers = { path = "crates/agent_servers" }
 ai = { path = "crates/ai" }
 anthropic = { path = "crates/anthropic" }
+askpass = { path = "crates/askpass" }
 assets = { path = "crates/assets" }
 assistant_text_thread = { path = "crates/assistant_text_thread" }
 assistant_slash_command = { path = "crates/assistant_slash_command" }
@@ -212,6 +213,9 @@ crossbeam = "0.8.4"
 db = { path = "crates/db" }
 deepseek = { path = "crates/deepseek" }
 derive_refineable = { path = "crates/refineable/derive_refineable" }
+edit_prediction = { path = "crates/edit_prediction" }
+extension = { path = "crates/extension" }
+extension_host = { path = "crates/extension_host" }
 feature_flags = { path = "crates/feature_flags" }
 file_icons = { path = "crates/file_icons" }
 fs = { path = "crates/fs" }
