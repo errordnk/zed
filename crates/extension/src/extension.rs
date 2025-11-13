@@ -13,16 +13,47 @@ impl ExtensionHostProxy {
     pub fn default_global(_cx: &App) -> Entity<Self> {
         unimplemented!("ExtensionHostProxy is stubbed")
     }
+}
 
+// Methods on Entity<ExtensionHostProxy>
+impl Entity<ExtensionHostProxy> {
     pub fn register_context_server_proxy(&self, _proxy: impl ExtensionContextServerProxy) {
         // Stub - extensions not needed in terminal fork
     }
 }
 
-pub trait Extension {}
+pub trait Extension: Send + Sync {
+    fn context_server_command(
+        &self,
+        _id: Arc<str>,
+        _project: Arc<dyn ProjectDelegate>,
+    ) -> gpui::Task<anyhow::Result<ContextServerCommand>> {
+        gpui::Task::ready(Err(anyhow::anyhow!("Not implemented")))
+    }
+
+    fn path_from_extension(&self, path: &str) -> String {
+        path.to_string()
+    }
+
+    fn context_server_configuration(
+        &self,
+        _id: Arc<str>,
+        _project: Arc<dyn ProjectDelegate>,
+    ) -> gpui::Task<anyhow::Result<Option<ContextServerConfiguration>>> {
+        gpui::Task::ready(Ok(None))
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct ContextServerCommand {
+    pub command: String,
+    pub args: Vec<String>,
+    pub env: std::collections::HashMap<String, String>,
+}
 
 pub struct ExtensionSnippetProxy;
 
+#[derive(Clone, Debug)]
 pub struct ContextServerConfiguration;
 
 pub trait ExtensionContextServerProxy: Send + Sync + 'static {

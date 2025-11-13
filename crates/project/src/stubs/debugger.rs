@@ -29,6 +29,10 @@ pub mod breakpoint_store {
         pub fn remote<C: ProtoClient + 'static>(_project_id: u64, _client: Arc<C>) -> Self {
             Self
         }
+
+        pub fn broadcast(&self) {
+            // Stub - debugger not available
+        }
     }
 
     impl EventEmitter<()> for BreakpointStore {}
@@ -51,8 +55,8 @@ pub mod dap_store {
     impl DapStore {
         pub fn init<C: ProtoClient + 'static>(_client: &Arc<C>, _cx: &mut App) {}
 
-        pub fn new_local(_worktree_store: Entity<WorktreeStore>, _client: Arc<Client>, _cx: &mut App) -> Entity<Self> {
-            panic!("Debugger not available in terminal fork")
+        pub fn new_local(_worktree_store: Entity<WorktreeStore>, _client: Arc<Client>, _cx: &mut App) -> Self {
+            Self
         }
 
         pub fn new_remote(
@@ -60,17 +64,19 @@ pub mod dap_store {
             _client: Arc<Client>,
             _worktree_store: Entity<WorktreeStore>,
             _cx: &mut App,
-        ) -> Entity<Self> {
-            panic!("Debugger not available in terminal fork")
+        ) -> Self {
+            Self
         }
 
-        pub fn new_collab<C: ProtoClient + 'static>(
+        pub fn new_collab<C: ProtoClient + 'static, Fs: fs::Fs + 'static>(
             _project_id: u64,
             _client: Arc<C>,
+            _breakpoint_store: Entity<super::breakpoint_store::BreakpointStore>,
             _worktree_store: Entity<WorktreeStore>,
+            _fs: Arc<Fs>,
             _cx: &mut App,
-        ) -> Result<Entity<Self>> {
-            panic!("Debugger not available in terminal fork")
+        ) -> Result<Self> {
+            Ok(Self)
         }
     }
 

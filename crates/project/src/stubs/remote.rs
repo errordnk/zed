@@ -1,9 +1,12 @@
 //! Stub module for remote crate
 //! The remote crate was removed in Phase 2. This stub provides minimal types for compilation.
 
-use anyhow::Result;
 use client::Client;
+use collections::HashMap;
+use rpc::AnyProtoClient;
+use std::path::PathBuf;
 use std::sync::Arc;
+use task::SpawnInTerminal;
 
 #[derive(Clone, Debug)]
 pub enum ConnectionState {
@@ -27,6 +30,28 @@ impl RemoteClient {
 
     pub fn connection_state(&self) -> ConnectionState {
         ConnectionState::Disconnected
+    }
+
+    pub fn proto_client(&self) -> AnyProtoClient {
+        panic!("Remote client not available in terminal fork")
+    }
+
+    pub fn build_command(
+        &self,
+        _program: Option<String>,
+        _args: &[String],
+        _env: &HashMap<String, String>,
+        _root_dir: Option<String>,
+        _login: Option<SpawnInTerminal>,
+    ) -> anyhow::Result<SpawnInTerminal> {
+        Ok(SpawnInTerminal {
+            command: Some(String::new()),
+            args: Vec::new(),
+            env: HashMap::default(),
+            cwd: PathBuf::new(),
+            label: String::new(),
+            ..Default::default()
+        })
     }
 }
 
