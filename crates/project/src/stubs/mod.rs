@@ -7,4 +7,3 @@ pub mod dap;
 pub mod debugger;
 pub mod git_hosting_providers;
 pub mod prettier;
-pub mod remote;
