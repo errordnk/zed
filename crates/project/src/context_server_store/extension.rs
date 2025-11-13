@@ -4,7 +4,7 @@ use anyhow::Result;
 use context_server::ContextServerCommand;
 use extension::{
     ContextServerConfiguration, Extension, ExtensionContextServerProxy, ExtensionHostProxy,
-    ProjectDelegate,
+    ExtensionHostProxyExt, ProjectDelegate,
 };
 use gpui::{App, AsyncApp, Entity, Task};
 

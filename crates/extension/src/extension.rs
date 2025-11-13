@@ -15,9 +15,13 @@ impl ExtensionHostProxy {
     }
 }
 
-// Methods on Entity<ExtensionHostProxy>
-impl Entity<ExtensionHostProxy> {
-    pub fn register_context_server_proxy(&self, _proxy: impl ExtensionContextServerProxy) {
+// Extension trait to add methods to Entity<ExtensionHostProxy>
+pub trait ExtensionHostProxyExt {
+    fn register_context_server_proxy<T: ExtensionContextServerProxy>(&self, _proxy: T);
+}
+
+impl ExtensionHostProxyExt for Entity<ExtensionHostProxy> {
+    fn register_context_server_proxy<T: ExtensionContextServerProxy>(&self, _proxy: T) {
         // Stub - extensions not needed in terminal fork
     }
 }

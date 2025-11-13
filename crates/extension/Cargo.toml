@@ -13,6 +13,7 @@ path = "src/extension.rs"
 doctest = false
 
 [dependencies]
+anyhow.workspace = true
 collections.workspace = true
 gpui.workspace = true
 serde.workspace = true
