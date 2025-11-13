@@ -2328,6 +2328,13 @@ async fn run_askpass_command(
                 AskPassResult::Timedout => {
                     Err(anyhow!("Connecting to host timed out"))?
                 }
+                AskPassResult::Success => {
+                    // Stub: should never happen since run() returns Timedout
+                    unreachable!("AskPassSession stub always times out")
+                }
+                AskPassResult::Error(msg) => {
+                    Err(anyhow!("Git authentication error: {}", msg))?
+                }
             }
         }
         output = git_process.output().fuse() => {
