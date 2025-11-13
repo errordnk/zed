@@ -60,21 +60,35 @@ All keyboard shortcuts in one place:
 {
   "keymap": [
     {
+      "context": "Workspace",
+      "bindings": {
+        "f12": "assistant::ToggleFocus",      // Toggle AI panel
+        "ctrl-shift-t": "workspace::NewTerminal",
+        "ctrl-shift-w": "pane::CloseActiveItem"
+      }
+    },
+    {
       "context": "Terminal",
       "bindings": {
-        "ctrl-shift-t": "workspace::NewTerminal",
-        "ctrl-shift-w": "pane::CloseActiveItem",
-        "ctrl-tab": "pane::ActivateNextItem"
+        "ctrl-tab": "pane::ActivateNextItem",
+        "ctrl-shift-c": "terminal::Copy",
+        "ctrl-shift-v": "terminal::Paste"
       }
     }
   ]
 }
 ```
 
+**Key Bindings:**
+- `F12` - Toggle AI panel (works everywhere, like devtools in Windows Terminal)
+- `Ctrl+Shift+T` - New terminal
+- `Ctrl+Tab` - Next terminal tab
+- `Ctrl+Shift+C/V` - Copy/paste in terminal
+
 **Contexts:**
+- `Workspace` - global shortcuts (work everywhere)
 - `Terminal` - when terminal is focused
-- `Workspace` - global shortcuts
-- `AssistantPanel` - AI assistant shortcuts
+- `AssistantPanel` - when AI panel is focused
 
 ### 3. Theme & Appearance
 

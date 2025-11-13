@@ -68,6 +68,18 @@
   // ========== KEYBINDINGS ==========
   // All keyboard shortcuts in one place
   "keymap": [
+    // Global shortcuts (work everywhere)
+    {
+      "context": "Workspace",
+      "bindings": {
+        "f12": "assistant::ToggleFocus",      // Toggle AI panel (like Windows Terminal devtools)
+        "ctrl-w": "workspace::CloseWindow",
+        "ctrl-shift-n": "workspace::NewWindow",
+        "ctrl-,": "zed::OpenSettings",
+        "ctrl-shift-p": "command_palette::Toggle"
+      }
+    },
+
     // Terminal shortcuts
     {
       "context": "Terminal",
@@ -81,18 +93,7 @@
       }
     },
 
-    // Window management
-    {
-      "context": "Workspace",
-      "bindings": {
-        "ctrl-w": "workspace::CloseWindow",
-        "ctrl-shift-n": "workspace::NewWindow",
-        "ctrl-,": "zed::OpenSettings",
-        "ctrl-shift-p": "command_palette::Toggle"
-      }
-    },
-
-    // AI assistant shortcuts
+    // AI assistant shortcuts (when panel is focused)
     {
       "context": "AssistantPanel",
       "bindings": {

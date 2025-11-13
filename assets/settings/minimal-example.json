@@ -1,0 +1,60 @@
+{
+  // Minimal Zed Terminal Configuration
+  // Quick start with essential settings only
+
+  // Terminal profiles
+  "terminal": {
+    "profiles": [
+      {
+        "type": "local",
+        "name": "Local Shell"
+      }
+    ],
+    "font_size": 14,
+    "shell": {
+      "program": "/bin/zsh"
+    }
+  },
+
+  // Key bindings
+  "keymap": [
+    {
+      "context": "Workspace",
+      "bindings": {
+        "f12": "assistant::ToggleFocus"        // Toggle AI panel
+      }
+    },
+    {
+      "context": "Terminal",
+      "bindings": {
+        "ctrl-shift-t": "workspace::NewTerminal",
+        "ctrl-shift-w": "pane::CloseActiveItem",
+        "ctrl-tab": "pane::ActivateNextItem"
+      }
+    }
+  ],
+
+  // Theme
+  "theme": {
+    "mode": "dark",
+    "dark": "One Dark"
+  },
+
+  // AI provider (optional)
+  "language_models": {
+    "default_provider": "anthropic",
+    "providers": {
+      "anthropic": {
+        "api_key": "sk-ant-...",
+        "default_model": "claude-3-5-sonnet-20241022"
+      }
+    }
+  },
+
+  // Assistant
+  "assistant": {
+    "enabled": true,
+    "dock": "right",
+    "default_width": 640
+  }
+}
