@@ -31,7 +31,7 @@ impl Prettier {
     pub fn locate_prettier_installation(
         _worktree_paths: impl Iterator<Item = Arc<Path>>,
         _locate_in: Vec<PathBuf>,
-        _node: Arc<dyn node_runtime::NodeRuntime>,
+        _node: node_runtime::NodeRuntime,
         _cx: &mut AsyncApp,
     ) -> Task<Result<Option<PathBuf>>> {
         Task::ready(Ok(None))
