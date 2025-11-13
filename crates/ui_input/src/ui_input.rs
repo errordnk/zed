@@ -5,7 +5,7 @@
 
 // STUB types for editor crate removed in Phase 2
 mod editor_stub {
-    use gpui::{App, Context, Entity, FocusHandle, Focusable, Hsla, Window};
+    use gpui::{App, Context, Entity, FocusHandle, Focusable, Hsla, IntoElement, Window};
     use ui::SharedString;
 
     /// Stub Editor type - editor crate was removed
@@ -27,11 +27,25 @@ mod editor_stub {
         pub fn set_read_only(&mut self, _read_only: bool) {
             // Stub - no-op
         }
+
+        pub fn set_style(&mut self, _style: EditorStyle, _window: &mut Window, _cx: &mut Context<Self>) {
+            // Stub - no-op
+        }
+
+        pub fn set_text(&mut self, _text: impl Into<String>, _window: &mut Window, _cx: &mut Context<Self>) {
+            // Stub - no-op
+        }
     }
 
     impl Focusable for Editor {
         fn focus_handle(&self, _cx: &App) -> FocusHandle {
             unimplemented!("Editor stub - focus_handle not implemented")
+        }
+    }
+
+    impl gpui::Render for Editor {
+        fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+            gpui::Empty
         }
     }
 
@@ -41,7 +55,7 @@ mod editor_stub {
         pub text: gpui::TextStyle,
         pub background: Hsla,
         pub scrollbar_width: gpui::Pixels,
-        pub local_player: theme::PlayerColors,
+        pub local_player: theme::PlayerColor,
         pub syntax: std::sync::Arc<theme::SyntaxTheme>,
     }
 
@@ -51,7 +65,7 @@ mod editor_stub {
                 text: gpui::TextStyle::default(),
                 background: Hsla::default(),
                 scrollbar_width: gpui::Pixels::default(),
-                local_player: theme::PlayerColors::default(),
+                local_player: theme::PlayerColor::default(),
                 syntax: std::sync::Arc::new(theme::SyntaxTheme::default()),
             }
         }
@@ -77,31 +91,53 @@ mod editor_stub {
         type RequestLayoutState = ();
         type PrepaintState = ();
 
+        fn id(&self) -> Option<gpui::ElementId> {
+            None
+        }
+
+        fn source_location(&self) -> Option<&'static core::panic::Location<'static>> {
+            None
+        }
+
         fn request_layout(
             &mut self,
             _id: Option<&gpui::GlobalElementId>,
-            _cx: &mut gpui::WindowContext,
+            _inspector_id: Option<&gpui::InspectorElementId>,
+            window: &mut Window,
+            cx: &mut App,
         ) -> (gpui::LayoutId, Self::RequestLayoutState) {
             // Stub - return dummy layout
-            (gpui::LayoutId::default(), ())
+            let layout_id = window.request_layout(
+                gpui::Style {
+                    display: gpui::Display::None,
+                    ..Default::default()
+                },
+                None,
+                cx,
+            );
+            (layout_id, ())
         }
 
         fn prepaint(
             &mut self,
             _id: Option<&gpui::GlobalElementId>,
+            _inspector_id: Option<&gpui::InspectorElementId>,
             _bounds: gpui::Bounds<gpui::Pixels>,
             _request_layout: &mut Self::RequestLayoutState,
-            _cx: &mut gpui::WindowContext,
+            _window: &mut Window,
+            _cx: &mut App,
         ) -> Self::PrepaintState {
         }
 
         fn paint(
             &mut self,
             _id: Option<&gpui::GlobalElementId>,
+            _inspector_id: Option<&gpui::InspectorElementId>,
             _bounds: gpui::Bounds<gpui::Pixels>,
             _request_layout: &mut Self::RequestLayoutState,
             _prepaint: &mut Self::PrepaintState,
-            _cx: &mut gpui::WindowContext,
+            _window: &mut Window,
+            _cx: &mut App,
         ) {
             // Stub - no painting
         }
