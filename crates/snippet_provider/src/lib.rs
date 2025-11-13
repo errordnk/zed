@@ -1,4 +1,5 @@
-mod extension_snippet;
+// REMOVED: extension crate deleted in Phase 2
+// mod extension_snippet;
 pub mod format;
 mod registry;
 
@@ -19,7 +20,8 @@ use util::ResultExt;
 
 pub fn init(cx: &mut App) {
     SnippetRegistry::init_global(cx);
-    extension_snippet::init(cx);
+    // REMOVED: extension snippets not needed in terminal fork
+    // extension_snippet::init(cx);
 }
 
 // Is `None` if the snippet file is global.
