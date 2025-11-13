@@ -19,6 +19,7 @@ test-support = []
 [dependencies]
 # ai_onboarding.workspace # REMOVED = true
 anyhow.workspace = true
+edit_prediction.workspace = true
 arrayvec.workspace = true
 client.workspace = true
 cloud_llm_client.workspace = true
