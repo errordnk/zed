@@ -1,6 +1,8 @@
 # Terminal Connection Profiles
 
-Windows Terminal-style connection profiles for Zed Terminal.
+Windows Terminal-style connection profiles configured via `settings.json`.
+
+> **Note:** All configuration is done through `settings.json` - see `SETTINGS.md` for complete documentation.
 
 ## Overview
 

@@ -1,0 +1,312 @@
+{
+  // ============================================================
+  // COMPLETE SETTINGS EXAMPLE (Windows Terminal style)
+  // Everything in one file: profiles, keybindings, themes, AI
+  // ============================================================
+
+  // ========== TERMINAL PROFILES ==========
+  "terminal": {
+    // Connection profiles (shown in dropdown menu)
+    "profiles": [
+      {
+        "type": "local",
+        "name": "Local Shell"
+      },
+      {
+        "type": "ssh",
+        "name": "Production Server",
+        "host": "prod.example.com",
+        "user": "admin",
+        "port": 22
+      },
+      {
+        "type": "ssh",
+        "name": "Development Server",
+        "host": "dev.example.com",
+        "user": "developer"
+      },
+      {
+        "type": "ssh",
+        "name": "Jump Host",
+        "host": "10.0.0.5",
+        "user": "ubuntu",
+        "port": 2222
+      }
+    ],
+
+    // Terminal appearance
+    "shell": {
+      "program": "/bin/zsh"
+    },
+    "working_directory": "current_project_directory",
+    "font_size": 14,
+    "font_family": "JetBrains Mono",
+    "line_height": "comfortable",
+    "blinking": "terminal_controlled",
+    "alternate_scroll": "on",
+    "option_as_meta": false,
+    "copy_on_select": false,
+    "keep_selection_on_copy": false,
+    "dock": "bottom",
+    "default_width": 640,
+    "default_height": 320,
+    "cursor_shape": "block",
+    "toolbar": {
+      "breadcrumbs": true
+    },
+    "scrollbar": {
+      "show": "auto"
+    },
+
+    // Environment variables for terminal
+    "env": {
+      "EDITOR": "zed",
+      "VISUAL": "zed"
+    }
+  },
+
+  // ========== KEYBINDINGS ==========
+  // All keyboard shortcuts in one place
+  "keymap": [
+    // Terminal shortcuts
+    {
+      "context": "Terminal",
+      "bindings": {
+        "ctrl-shift-t": "workspace::NewTerminal",
+        "ctrl-shift-w": "pane::CloseActiveItem",
+        "ctrl-tab": "pane::ActivateNextItem",
+        "ctrl-shift-tab": "pane::ActivatePreviousItem",
+        "ctrl-shift-c": "terminal::Copy",
+        "ctrl-shift-v": "terminal::Paste"
+      }
+    },
+
+    // Window management
+    {
+      "context": "Workspace",
+      "bindings": {
+        "ctrl-w": "workspace::CloseWindow",
+        "ctrl-shift-n": "workspace::NewWindow",
+        "ctrl-,": "zed::OpenSettings",
+        "ctrl-shift-p": "command_palette::Toggle"
+      }
+    },
+
+    // AI assistant shortcuts
+    {
+      "context": "AssistantPanel",
+      "bindings": {
+        "ctrl-shift-a": "assistant::ToggleFocus",
+        "ctrl-enter": "assistant::Assist",
+        "escape": "assistant::Cancel"
+      }
+    }
+  ],
+
+  // ========== THEME & APPEARANCE ==========
+  "theme": {
+    // Main theme
+    "mode": "dark",
+    "light": "One Light",
+    "dark": "One Dark",
+
+    // Custom theme overrides
+    "overrides": {
+      "title_bar_background": "#1e1e1e",
+      "tab_bar_background": "#252526",
+      "tab_active_background": "#1e1e1e",
+      "terminal_background": "#0e0e0e",
+      "terminal_foreground": "#cccccc"
+    }
+  },
+
+  // UI appearance settings
+  "ui_font_size": 14,
+  "ui_font_family": "Zed Sans",
+  "buffer_font_size": 14,
+  "buffer_font_family": "JetBrains Mono",
+
+  // Window appearance
+  "auto_update": true,
+  "restore_on_startup": "last_workspace",
+  "show_whitespaces": "selection",
+  "show_wrap_guides": true,
+  "wrap_guides": [80, 120],
+
+  // ========== AI PROVIDERS ==========
+  "language_models": {
+    // Default provider
+    "default_provider": "anthropic",
+
+    // Provider configurations
+    "providers": {
+      // Anthropic Claude
+      "anthropic": {
+        "api_key": "sk-ant-...",
+        "api_url": "https://api.anthropic.com",
+        "default_model": "claude-3-5-sonnet-20241022",
+        "available_models": [
+          "claude-3-5-sonnet-20241022",
+          "claude-3-5-haiku-20241022",
+          "claude-3-opus-20240229"
+        ],
+        "timeout": 120
+      },
+
+      // OpenAI
+      "openai": {
+        "api_key": "sk-...",
+        "api_url": "https://api.openai.com/v1",
+        "default_model": "gpt-4-turbo-preview",
+        "available_models": [
+          "gpt-4-turbo-preview",
+          "gpt-4",
+          "gpt-3.5-turbo"
+        ]
+      },
+
+      // Google AI
+      "google": {
+        "api_key": "...",
+        "default_model": "gemini-pro",
+        "available_models": [
+          "gemini-pro",
+          "gemini-pro-vision"
+        ]
+      },
+
+      // Ollama (local)
+      "ollama": {
+        "api_url": "http://localhost:11434",
+        "default_model": "codellama:13b",
+        "available_models": [
+          "codellama:13b",
+          "mistral:7b",
+          "llama2:13b"
+        ]
+      }
+    }
+  },
+
+  // AI assistant settings
+  "assistant": {
+    "enabled": true,
+    "default_model": {
+      "provider": "anthropic",
+      "model": "claude-3-5-sonnet-20241022"
+    },
+    "dock": "right",
+    "default_width": 640,
+    "button": true,
+
+    // Context settings
+    "context": {
+      "max_tokens": 100000,
+      "include_open_files": true,
+      "include_git_diff": true
+    }
+  },
+
+  // Inline assist settings
+  "inline_assist": {
+    "enabled": true,
+    "provider": "anthropic",
+    "model": "claude-3-5-sonnet-20241022"
+  },
+
+  // ========== GIT SETTINGS ==========
+  "git": {
+    "enabled": true,
+    "git_gutter": "tracked_files",
+    "inline_blame": {
+      "enabled": true,
+      "delay_ms": 1000
+    }
+  },
+
+  // ========== PROJECT SETTINGS ==========
+  "project_panel": {
+    "button": true,
+    "dock": "left",
+    "default_width": 240,
+    "git_status": true,
+    "indent_size": 20,
+    "auto_reveal_entries": true,
+    "auto_fold_dirs": true
+  },
+
+  // File associations
+  "file_types": {
+    "Dockerfile": ["Dockerfile*"],
+    "JSON": ["*.json", "*.jsonc"],
+    "YAML": ["*.yaml", "*.yml"]
+  },
+
+  // ========== LSP SETTINGS ==========
+  "lsp": {
+    "rust-analyzer": {
+      "initialization_options": {
+        "checkOnSave": {
+          "command": "clippy"
+        }
+      }
+    },
+    "typescript-language-server": {
+      "initialization_options": {
+        "preferences": {
+          "includeInlayParameterNameHints": "all",
+          "includeInlayFunctionParameterTypeHints": true
+        }
+      }
+    }
+  },
+
+  // ========== LANGUAGES ==========
+  "languages": {
+    "Rust": {
+      "tab_size": 4,
+      "hard_tabs": false,
+      "format_on_save": "on",
+      "formatter": "language_server"
+    },
+    "JavaScript": {
+      "tab_size": 2,
+      "hard_tabs": false,
+      "format_on_save": "on",
+      "formatter": "prettier"
+    },
+    "TypeScript": {
+      "tab_size": 2,
+      "hard_tabs": false,
+      "format_on_save": "on",
+      "formatter": "prettier"
+    },
+    "Python": {
+      "tab_size": 4,
+      "hard_tabs": false,
+      "format_on_save": "on",
+      "formatter": "language_server"
+    }
+  },
+
+  // ========== EDITOR BEHAVIOR ==========
+  "cursor_blink": false,
+  "hover_popover_enabled": true,
+  "confirm_quit": false,
+  "autosave": "on_focus_change",
+  "format_on_save": "on",
+  "remove_trailing_whitespace_on_save": true,
+  "ensure_final_newline_on_save": true,
+  "tab_size": 2,
+  "hard_tabs": false,
+  "soft_wrap": "prefer_line",
+  "show_completions_on_input": true,
+  "use_autoclose": true,
+  "always_treat_brackets_as_autoclosed": true,
+
+  // ========== TELEMETRY ==========
+  "telemetry": {
+    "diagnostics": false,
+    "metrics": false
+  }
+}
