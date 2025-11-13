@@ -18,13 +18,10 @@ e2e = []
 workspace = true
 
 [dependencies]
-acp_thread.workspace = true
-action_log.workspace = true
 agent-client-protocol.workspace = true
 agent_servers.workspace = true
 agent_settings.workspace = true
 anyhow.workspace = true
-assistant_text_thread.workspace = true
 chrono.workspace = true
 client.workspace = true
 cloud_llm_client.workspace = true
@@ -49,7 +46,6 @@ open.workspace = true
 parking_lot.workspace = true
 paths.workspace = true
 project.workspace = true
-prompt_store.workspace = true
 regex.workspace = true
 rust-embed.workspace = true
 schemars.workspace = true
@@ -59,7 +55,6 @@ settings.workspace = true
 smallvec.workspace = true
 smol.workspace = true
 sqlez.workspace = true
-streaming_diff.workspace = true
 strsim.workspace = true
 task.workspace = true
 telemetry.workspace = true
@@ -75,7 +70,6 @@ zstd.workspace = true
 
 [dev-dependencies]
 agent_servers = { workspace = true, "features" = ["test-support"] }
-assistant_text_thread = { workspace = true, "features" = ["test-support"] }
 client = { workspace = true, "features" = ["test-support"] }
 clock = { workspace = true, "features" = ["test-support"] }
 context_server = { workspace = true, "features" = ["test-support"] }

@@ -1,33 +1,24 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates/acp_tools",
-    "crates/acp_thread",
-    "crates/action_log",
     "crates/activity_indicator",
     "crates/agent",
     "crates/agent_servers",
     "crates/agent_settings",
-    "crates/agent_ui",
     "crates/anthropic",
     "crates/askpass",
     "crates/assets",
-    "crates/assistant_text_thread",
-    "crates/assistant_slash_command",
-    "crates/assistant_slash_commands",
     "crates/auto_update",
     "crates/auto_update_helper",
     "crates/auto_update_ui",
     "crates/aws_http_client",
     "crates/bedrock",
-    "crates/buffer_diff",
     "crates/cli",
     "crates/client",
     "crates/clock",
     "crates/cloud_api_client",
     "crates/cloud_api_types",
     "crates/cloud_llm_client",
-    "crates/cloud_zeta2_prompt",
     "crates/collections",
     "crates/command_palette",
     "crates/command_palette_hooks",
@@ -38,10 +29,8 @@ members = [
     "crates/db",
     "crates/deepseek",
     "crates/docs_preprocessor",
-    "crates/edit_prediction",
     "crates/extension",
     "crates/extension_host",
-    "crates/zeta2_tools",
     "crates/feature_flags",
     "crates/file_icons",
     "crates/fs",
@@ -62,13 +51,9 @@ members = [
     "crates/language",
     "crates/language_model",
     "crates/language_models",
-    "crates/language_onboarding",
-    "crates/language_tools",
-    "crates/line_ending_selector",
     "crates/lmstudio",
     "crates/lsp",
     "crates/markdown",
-    "crates/markdown_preview",
     "crates/media",
     "crates/menu",
     "crates/migrator",
@@ -83,7 +68,6 @@ members = [
     "crates/paths",
     "crates/picker",
     "crates/project",
-    "crates/prompt_store",
     "crates/proto",
     "crates/refineable",
     "crates/refineable/derive_refineable",
@@ -93,7 +77,6 @@ members = [
     "crates/rich_text",
     "crates/rope",
     "crates/rpc",
-    "crates/rules_library",
     "crates/schema_generator",
     "crates/semantic_version",
     "crates/session",
@@ -102,16 +85,9 @@ members = [
     "crates/settings_macros",
     "crates/settings_profile_selector",
     "crates/settings_ui",
-    "crates/snippet",
-    "crates/snippet_provider",
-    "crates/snippets_ui",
     "crates/sqlez",
     "crates/sqlez_macros",
-    "crates/streaming_diff",
     "crates/sum_tree",
-    "crates/supermaven",
-    "crates/supermaven_api",
-    "crates/codestral",
     "crates/system_specs",
     "crates/task",
     "crates/tasks_ui",
@@ -139,9 +115,6 @@ members = [
     "crates/zed",
     "crates/zed_actions",
     "crates/zed_env_vars",
-    "crates/zeta",
-    "crates/zeta2",
-    "crates/zeta_cli",
     "crates/zlog",
     "crates/zlog_settings",
 
@@ -174,33 +147,24 @@ edition = "2024"
 # Workspace member crates
 #
 
-acp_tools = { path = "crates/acp_tools" }
-acp_thread = { path = "crates/acp_thread" }
-action_log = { path = "crates/action_log" }
 agent = { path = "crates/agent" }
 activity_indicator = { path = "crates/activity_indicator" }
-agent_ui = { path = "crates/agent_ui" }
 agent_settings = { path = "crates/agent_settings" }
 agent_servers = { path = "crates/agent_servers" }
 ai = { path = "crates/ai" }
 anthropic = { path = "crates/anthropic" }
 assets = { path = "crates/assets" }
-assistant_text_thread = { path = "crates/assistant_text_thread" }
-assistant_slash_command = { path = "crates/assistant_slash_command" }
-assistant_slash_commands = { path = "crates/assistant_slash_commands" }
 auto_update = { path = "crates/auto_update" }
 auto_update_helper = { path = "crates/auto_update_helper" }
 auto_update_ui = { path = "crates/auto_update_ui" }
 aws_http_client = { path = "crates/aws_http_client" }
 bedrock = { path = "crates/bedrock" }
-buffer_diff = { path = "crates/buffer_diff" }
 cli = { path = "crates/cli" }
 client = { path = "crates/client" }
 clock = { path = "crates/clock" }
 cloud_api_client = { path = "crates/cloud_api_client" }
 cloud_api_types = { path = "crates/cloud_api_types" }
 cloud_llm_client = { path = "crates/cloud_llm_client" }
-cloud_zeta2_prompt = { path = "crates/cloud_zeta2_prompt" }
 collections = { path = "crates/collections", version = "0.1.0" }
 command_palette = { path = "crates/command_palette" }
 command_palette_hooks = { path = "crates/command_palette_hooks" }
@@ -226,19 +190,14 @@ html_to_markdown = { path = "crates/html_to_markdown" }
 http_client = { path = "crates/http_client" }
 http_client_tls = { path = "crates/http_client_tls" }
 icons = { path = "crates/icons" }
-zeta2_tools = { path = "crates/zeta2_tools" }
 install_cli = { path = "crates/install_cli" }
 json_schema_store = { path = "crates/json_schema_store" }
 language = { path = "crates/language" }
 language_model = { path = "crates/language_model" }
 language_models = { path = "crates/language_models" }
-language_onboarding = { path = "crates/language_onboarding" }
-language_tools = { path = "crates/language_tools" }
-line_ending_selector = { path = "crates/line_ending_selector" }
 lmstudio = { path = "crates/lmstudio" }
 lsp = { path = "crates/lsp" }
 markdown = { path = "crates/markdown" }
-markdown_preview = { path = "crates/markdown_preview" }
 media = { path = "crates/media" }
 menu = { path = "crates/menu" }
 migrator = { path = "crates/migrator" }
@@ -257,7 +216,6 @@ plugin = { path = "crates/plugin" }
 plugin_macros = { path = "crates/plugin_macros" }
 settings_profile_selector = { path = "crates/settings_profile_selector" }
 project = { path = "crates/project" }
-prompt_store = { path = "crates/prompt_store" }
 proto = { path = "crates/proto" }
 refineable = { path = "crates/refineable" }
 release_channel = { path = "crates/release_channel" }
@@ -267,23 +225,15 @@ rich_text = { path = "crates/rich_text" }
 rodio = { git = "https://github.com/RustAudio/rodio", rev ="e2074c6c2acf07b57cf717e076bdda7a9ac6e70b", features = ["wav", "playback", "wav_output", "recording"] }
 rope = { path = "crates/rope" }
 rpc = { path = "crates/rpc" }
-rules_library = { path = "crates/rules_library" }
 semantic_version = { path = "crates/semantic_version" }
 session = { path = "crates/session" }
 settings = { path = "crates/settings" }
 settings_json = { path = "crates/settings_json" }
 settings_macros = { path = "crates/settings_macros" }
 settings_ui = { path = "crates/settings_ui" }
-snippet = { path = "crates/snippet" }
-snippet_provider = { path = "crates/snippet_provider" }
-snippets_ui = { path = "crates/snippets_ui" }
 sqlez = { path = "crates/sqlez" }
 sqlez_macros = { path = "crates/sqlez_macros" }
-streaming_diff = { path = "crates/streaming_diff" }
 sum_tree = { path = "crates/sum_tree" }
-supermaven = { path = "crates/supermaven" }
-supermaven_api = { path = "crates/supermaven_api" }
-codestral = { path = "crates/codestral" }
 system_specs = { path = "crates/system_specs" }
 task = { path = "crates/task" }
 tasks_ui = { path = "crates/tasks_ui" }
@@ -312,8 +262,6 @@ x_ai = { path = "crates/x_ai" }
 zed = { path = "crates/zed" }
 zed_actions = { path = "crates/zed_actions" }
 zed_env_vars = { path = "crates/zed_env_vars" }
-zeta = { path = "crates/zeta" }
-zeta2 = { path = "crates/zeta2" }
 zlog = { path = "crates/zlog" }
 zlog_settings = { path = "crates/zlog_settings" }
 
@@ -701,10 +649,7 @@ reqwest_client = { codegen-units = 1 }
 rich_text = { codegen-units = 1 }
 semantic_version = { codegen-units = 1 }
 session = { codegen-units = 1 }
-snippet = { codegen-units = 1 }
-snippets_ui = { codegen-units = 1 }
 sqlez_macros = { codegen-units = 1 }
-supermaven_api = { codegen-units = 1 }
 telemetry_events = { codegen-units = 1 }
 theme_selector = { codegen-units = 1 }
 time_format = { codegen-units = 1 }
