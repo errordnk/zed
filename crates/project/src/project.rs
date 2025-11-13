@@ -24,6 +24,7 @@ pub mod worktree_store;
 mod project_tests;
 
 mod environment;
+mod stubs; // Stubs for removed crates (dap, prettier, remote, git_hosting_providers)
 use buffer_diff::BufferDiff;
 use context_server_store::ContextServerStore;
 pub use environment::ProjectEnvironmentEvent;
@@ -31,6 +32,12 @@ use git::repository::get_git_committer;
 use git_store::{Repository, RepositoryId};
 pub mod search_history;
 mod yarn;
+
+// Use stubs instead of removed crates
+use crate::stubs::dap;
+use crate::stubs::git_hosting_providers;
+use crate::stubs::prettier;
+use crate::stubs::remote;
 
 use dap::inline_value::{InlineValueLocation, VariableLookupKind, VariableScope};
 
