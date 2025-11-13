@@ -16,7 +16,7 @@ pub mod wasm_host {
 pub struct ExtensionStore;
 
 impl ExtensionStore {
-    pub fn global(_cx: &App) -> gpui::Model<Self> {
+    pub fn global(_cx: &App) -> gpui::Entity<Self> {
         unimplemented!("ExtensionStore is stubbed")
     }
 }

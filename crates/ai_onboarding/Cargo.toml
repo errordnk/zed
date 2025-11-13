@@ -1,0 +1,16 @@
+[package]
+name = "ai_onboarding"
+version = "0.1.0"
+edition = "2021"
+publish = false
+license = "GPL-3.0-or-later"
+
+[lints]
+workspace = true
+
+[lib]
+path = "src/ai_onboarding.rs"
+doctest = false
+
+[dependencies]
+gpui.workspace = true

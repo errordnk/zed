@@ -152,6 +152,7 @@ activity_indicator = { path = "crates/activity_indicator" }
 agent_settings = { path = "crates/agent_settings" }
 agent_servers = { path = "crates/agent_servers" }
 ai = { path = "crates/ai" }
+ai_onboarding = { path = "crates/ai_onboarding" }
 anthropic = { path = "crates/anthropic" }
 assets = { path = "crates/assets" }
 askpass = { path = "crates/askpass" }
@@ -172,6 +173,7 @@ command_palette = { path = "crates/command_palette" }
 command_palette_hooks = { path = "crates/command_palette_hooks" }
 component = { path = "crates/component" }
 context_server = { path = "crates/context_server" }
+copilot = { path = "crates/copilot" }
 crashes = { path = "crates/crashes" }
 credentials_provider = { path = "crates/credentials_provider" }
 crossbeam = "0.8.4"

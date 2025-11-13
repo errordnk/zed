@@ -2,7 +2,7 @@
 //! The prettier crate was removed in Phase 3. This stub provides minimal types for compilation.
 
 use anyhow::Result;
-use gpui::{App, Model};
+use gpui::{App, Entity};
 
 #[derive(Clone)]
 pub struct Prettier;
@@ -12,7 +12,7 @@ impl Prettier {
         Prettier
     }
 
-    pub fn global(_cx: &App) -> Option<Model<Self>> {
+    pub fn global(_cx: &App) -> Option<Entity<Self>> {
         // Prettier not supported in terminal fork
         None
     }

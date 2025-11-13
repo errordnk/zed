@@ -13,4 +13,9 @@ path = "src/extension_host.rs"
 doctest = false
 
 [dependencies]
+client.workspace = true
 gpui.workspace = true
+language.workspace = true
+node_runtime.workspace = true
+theme.workspace = true
+util.workspace = true
