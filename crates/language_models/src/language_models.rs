@@ -15,7 +15,6 @@ pub mod ui;
 use crate::provider::anthropic::AnthropicLanguageModelProvider;
 use crate::provider::bedrock::BedrockLanguageModelProvider;
 use crate::provider::cloud::CloudLanguageModelProvider;
-use crate::provider::copilot_chat::CopilotChatLanguageModelProvider;
 use crate::provider::google::GoogleLanguageModelProvider;
 use crate::provider::lmstudio::LmStudioLanguageModelProvider;
 pub use crate::provider::mistral::MistralLanguageModelProvider;
@@ -161,5 +160,4 @@ fn register_language_model_providers(
         Arc::new(XAiLanguageModelProvider::new(client.http_client(), cx)),
         cx,
     );
-    registry.register_provider(Arc::new(CopilotChatLanguageModelProvider::new(cx)), cx);
 }
