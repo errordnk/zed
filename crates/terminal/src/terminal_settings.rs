@@ -56,6 +56,19 @@ impl TerminalProfile {
     }
 }
 
+impl From<settings::TerminalProfileContent> for TerminalProfile {
+    fn from(content: settings::TerminalProfileContent) -> Self {
+        match content {
+            settings::TerminalProfileContent::Local { name } => {
+                TerminalProfile::Local { name }
+            }
+            settings::TerminalProfileContent::Ssh { name, host, user, port } => {
+                TerminalProfile::Ssh { name, host, user, port }
+            }
+        }
+    }
+}
+
 #[derive(Copy, Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 pub struct Toolbar {
     pub breadcrumbs: bool,
@@ -159,7 +172,9 @@ impl settings::Settings for TerminalSettings {
                 show: user_content.scrollbar.unwrap().show,
             },
             minimum_contrast: user_content.minimum_contrast.unwrap(),
-            profiles: user_content.profiles.unwrap_or_else(|| {
+            profiles: user_content.profiles.map(|profiles| {
+                profiles.into_iter().map(|p| p.into()).collect()
+            }).unwrap_or_else(|| {
                 // Default profile: Local Shell (always available)
                 vec![TerminalProfile::Local {
                     name: "Local Shell".to_string(),

@@ -140,6 +140,38 @@ pub struct TerminalSettingsContent {
     /// Default: 45
     #[serde(serialize_with = "crate::serialize_optional_f32_with_two_decimal_places")]
     pub minimum_contrast: Option<f32>,
+    /// Connection profiles (Windows Terminal style)
+    ///
+    /// Default: [{"type": "local", "name": "Local Shell"}]
+    pub profiles: Option<Vec<TerminalProfileContent>>,
+}
+
+/// Terminal connection profile configuration
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, MergeFrom, PartialEq, Eq)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum TerminalProfileContent {
+    /// Local shell connection (default)
+    Local {
+        /// Display name for the profile
+        name: String,
+    },
+    /// SSH connection profile
+    Ssh {
+        /// Display name for the profile
+        name: String,
+        /// SSH host address
+        host: String,
+        /// SSH username
+        #[serde(default)]
+        user: Option<String>,
+        /// SSH port (default: 22)
+        #[serde(default = "default_ssh_port_content")]
+        port: u16,
+    },
+}
+
+fn default_ssh_port_content() -> u16 {
+    22
 }
 
 /// Shell configuration to open the terminal with.
