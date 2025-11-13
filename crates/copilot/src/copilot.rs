@@ -2,7 +2,7 @@
 //! The copilot crate was removed in Phase 2. This stub provides minimal types for compilation.
 
 use anyhow::Result;
-use gpui::{actions, App, Entity, Window};
+use gpui::{actions, App, Window};
 use serde::{Deserialize, Serialize};
 
 actions!(copilot, [SignOut]);
