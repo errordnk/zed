@@ -35,10 +35,38 @@ use uuid::Uuid;
 
 // Stub types for deleted askpass crate
 pub struct AskPassDelegate;
-pub struct AskPassSession;
+
+pub struct AskPassSession {
+    _executor: gpui::BackgroundExecutor,
+    _delegate: AskPassDelegate,
+}
+
+impl AskPassSession {
+    pub async fn new(
+        executor: &gpui::BackgroundExecutor,
+        delegate: AskPassDelegate,
+    ) -> anyhow::Result<Self> {
+        Ok(Self {
+            _executor: executor.clone(),
+            _delegate: delegate,
+        })
+    }
+
+    pub fn script_path(&self) -> &str {
+        "/tmp/git-askpass-stub"
+    }
+
+    pub async fn run(self) -> AskPassResult {
+        // Stub: always timeout since we don't use interactive Git auth
+        AskPassResult::Timedout
+    }
+}
+
 pub enum AskPassResult {
     Success,
     Error(String),
+    CancelledByUser,
+    Timedout,
 }
 
 pub const REMOTE_CANCELLED_BY_USER: &str = "Operation cancelled by user";
