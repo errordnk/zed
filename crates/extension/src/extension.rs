@@ -1,7 +1,7 @@
 //! Stub module for extension crate
 //! The extension crate was removed in Phase 2. This stub provides minimal types for compilation.
 
-use gpui::{App, AsyncApp, Entity, Task};
+use gpui::{App, Entity};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone)]

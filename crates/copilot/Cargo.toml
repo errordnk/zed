@@ -1,5 +1,5 @@
 [package]
-name = "edit_prediction"
+name = "copilot"
 version = "0.1.0"
 edition = "2021"
 publish = false
@@ -9,10 +9,11 @@ license = "GPL-3.0-or-later"
 workspace = true
 
 [lib]
-path = "src/edit_prediction.rs"
+path = "src/copilot.rs"
 doctest = false
 
 [dependencies]
+anyhow.workspace = true
 gpui.workspace = true
-language.workspace = true
-text.workspace = true
+serde.workspace = true
+serde_json.workspace = true

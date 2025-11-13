@@ -10,6 +10,7 @@ members = [
     "crates/agent_settings",
     "crates/agent_ui",
     "crates/anthropic",
+    "crates/ai_onboarding",
     "crates/askpass",
     "crates/assets",
     "crates/assistant_text_thread",
@@ -33,6 +34,7 @@ members = [
     "crates/command_palette_hooks",
     "crates/component",
     "crates/context_server",
+    "crates/copilot",
     "crates/crashes",
     "crates/credentials_provider",
     "crates/db",
@@ -184,6 +186,7 @@ agent_settings = { path = "crates/agent_settings" }
 agent_servers = { path = "crates/agent_servers" }
 ai = { path = "crates/ai" }
 anthropic = { path = "crates/anthropic" }
+ai_onboarding = { path = "crates/ai_onboarding" }
 askpass = { path = "crates/askpass" }
 assets = { path = "crates/assets" }
 assistant_text_thread = { path = "crates/assistant_text_thread" }
@@ -207,6 +210,7 @@ command_palette = { path = "crates/command_palette" }
 command_palette_hooks = { path = "crates/command_palette_hooks" }
 component = { path = "crates/component" }
 context_server = { path = "crates/context_server" }
+copilot = { path = "crates/copilot" }
 crashes = { path = "crates/crashes" }
 credentials_provider = { path = "crates/credentials_provider" }
 crossbeam = "0.8.4"
