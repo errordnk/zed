@@ -24,7 +24,7 @@ impl ExtensionStore {
 pub struct ExtensionOperation;
 
 pub fn init(
-    _fs: std::sync::Arc<dyn util::fs::Fs>,
+    _fs: std::sync::Arc<dyn fs::Fs>,
     _client: std::sync::Arc<client::Client>,
     _node_runtime: std::sync::Arc<node_runtime::NodeRuntime>,
     _language_registry: std::sync::Arc<language::LanguageRegistry>,

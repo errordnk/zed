@@ -2,7 +2,7 @@
 //! The copilot crate was removed in Phase 3. This stub provides minimal types for compilation.
 
 use anyhow::Result;
-use gpui::{actions, App, AppContext, Entity, Window};
+use gpui::{actions, Window};
 use serde::{Deserialize, Serialize};
 
 actions!(copilot, [SignOut]);
@@ -25,7 +25,7 @@ impl Copilot {
     }
 }
 
-pub fn initiate_sign_in(_window: Window, _cx: &mut AppContext) -> impl std::future::Future<Output = Result<()>> {
+pub fn initiate_sign_in(_window: Window, _cx: &mut impl gpui::AppContext) -> impl std::future::Future<Output = Result<()>> {
     async { Ok(()) }
 }
 
