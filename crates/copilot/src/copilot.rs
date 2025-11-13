@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 actions!(copilot, [SignOut]);
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub enum Status {
     Disabled,
     Starting {
@@ -266,19 +266,19 @@ pub mod copilot_responses {
         },
     }
 
-    #[derive(Clone, Debug)]
+    #[derive(Clone, Debug, Serialize, Deserialize)]
     pub enum ResponseInputItem {
         Message(ResponseInputContent),
         FunctionOutput(ResponseFunctionOutput),
     }
 
-    #[derive(Clone, Debug)]
+    #[derive(Clone, Debug, Serialize, Deserialize)]
     pub struct ResponseInputContent {
         pub role: String,
         pub content: String,
     }
 
-    #[derive(Clone, Debug)]
+    #[derive(Clone, Debug, Serialize, Deserialize)]
     pub struct ResponseFunctionOutput {
         pub call_id: String,
         pub output: String,
