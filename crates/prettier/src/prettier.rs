@@ -51,7 +51,7 @@ impl Prettier {
         _ignore_dir: Option<PathBuf>,
         _cx: &mut AsyncApp,
     ) -> Task<Result<language::Diff>> {
-        Task::ready(Ok(language::Diff::default()))
+        Task::ready(Err(anyhow::anyhow!("Prettier not available in terminal fork")))
     }
 
     pub fn server(&self) -> Option<Arc<PrettierServer>> {
