@@ -2,7 +2,7 @@
 //! The copilot crate was removed in Phase 2. This stub provides minimal types for compilation.
 
 use anyhow::Result;
-use gpui::{actions, App, Window};
+use gpui::{actions, App, Entity, Window};
 use serde::{Deserialize, Serialize};
 
 actions!(copilot, [SignOut]);
@@ -19,6 +19,10 @@ pub enum Status {
 pub struct Copilot;
 
 impl Copilot {
+    pub fn global(_cx: &App) -> Option<Entity<Self>> {
+        None
+    }
+
     pub fn status(&self) -> Status {
         Status::SignedOut
     }
@@ -38,9 +42,107 @@ pub mod copilot_chat {
         pub max_tokens: usize,
     }
 
+    impl Model {
+        pub fn id(&self) -> &str {
+            &self.id
+        }
+
+        pub fn display_name(&self) -> &str {
+            &self.name
+        }
+
+        pub fn supports_tools(&self) -> bool {
+            false
+        }
+
+        pub fn supports_vision(&self) -> bool {
+            false
+        }
+
+        pub fn vendor(&self) -> ModelVendor {
+            ModelVendor::GitHub
+        }
+
+        pub fn max_token_count(&self) -> usize {
+            self.max_tokens
+        }
+
+        pub fn tokenizer(&self) -> Option<String> {
+            None
+        }
+
+        pub fn supports_response(&self) -> bool {
+            false
+        }
+
+        pub fn uses_streaming(&self) -> bool {
+            true
+        }
+    }
+
     #[derive(Clone, Debug, Serialize, Deserialize)]
     pub struct CopilotChatConfiguration {
         pub model: Model,
+    }
+
+    #[derive(Clone, Debug, Serialize, Deserialize)]
+    pub enum ModelVendor {
+        GitHub,
+        OpenAI,
+        Anthropic,
+        Google,
+    }
+
+    pub struct CopilotChat;
+
+    #[derive(Clone, Debug, Serialize, Deserialize)]
+    pub struct ChatMessage {
+        pub role: String,
+        pub content: ChatMessageContent,
+    }
+
+    #[derive(Clone, Debug, Serialize, Deserialize)]
+    pub enum ChatMessageContent {
+        Text(String),
+        Parts(Vec<ChatMessagePart>),
+    }
+
+    #[derive(Clone, Debug, Serialize, Deserialize)]
+    pub enum ChatMessagePart {
+        Text(String),
+        Image(ImageUrl),
+    }
+
+    #[derive(Clone, Debug, Serialize, Deserialize)]
+    pub struct ImageUrl {
+        pub url: String,
+    }
+
+    #[derive(Clone, Debug, Serialize, Deserialize)]
+    pub struct Request {
+        pub messages: Vec<ChatMessage>,
+        pub model: String,
+    }
+
+    #[derive(Clone, Debug, Serialize, Deserialize)]
+    pub enum ResponseEvent {
+        Started,
+        Delta(String),
+        Finished,
+    }
+
+    #[derive(Clone, Debug, Serialize, Deserialize)]
+    pub struct Tool {
+        pub name: String,
+        pub description: String,
+        pub parameters: serde_json::Value,
+    }
+
+    #[derive(Clone, Debug, Serialize, Deserialize)]
+    pub struct ToolCall {
+        pub id: String,
+        pub name: String,
+        pub arguments: String,
     }
 
     #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -91,6 +193,51 @@ pub mod copilot_responses {
             id: String,
             content: String,
         },
+    }
+
+    #[derive(Clone, Debug, Serialize, Deserialize)]
+    pub enum ResponseInputItem {
+        Message {
+            role: String,
+            content: Vec<ResponseInputContent>,
+        },
+        FunctionCall {
+            id: String,
+            name: String,
+            arguments: String,
+        },
+        FunctionCallOutput {
+            call_id: String,
+            output: ResponseFunctionOutput,
+        },
+        Reasoning {
+            content: String,
+        },
+    }
+
+    #[derive(Clone, Debug, Serialize, Deserialize)]
+    pub enum ResponseInputContent {
+        InputText { text: String },
+        InputImage { url: String },
+        OutputText { text: String },
+    }
+
+    #[derive(Clone, Debug, Serialize, Deserialize)]
+    pub enum ResponseFunctionOutput {
+        Text(String),
+        Content(Vec<ResponseInputContent>),
+    }
+
+    #[derive(Clone, Debug, Serialize, Deserialize)]
+    pub enum ToolDefinition {
+        Function { function: copilot_chat::Function },
+    }
+
+    #[derive(Clone, Debug, Serialize, Deserialize)]
+    pub enum ToolChoice {
+        Auto,
+        Any,
+        None,
     }
 
     #[derive(Clone, Debug, Serialize, Deserialize)]

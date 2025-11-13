@@ -23,9 +23,19 @@ pub struct ExtensionSnippetProxy;
 
 pub struct ContextServerConfiguration;
 
-pub struct ExtensionContextServerProxy;
+pub trait ExtensionContextServerProxy {}
 
-pub trait ProjectDelegate {}
+pub trait ProjectDelegate {
+    fn worktree_ids(&self) -> Vec<u64>;
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct TargetConfig {
+    pub archive: String,
+    pub cmd: String,
+    pub args: Vec<String>,
+    pub sha256: Option<String>,
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ExtensionManifest {
