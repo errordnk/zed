@@ -735,6 +735,7 @@ impl VsCodeSettings {
             max_scroll_history_lines: self.read_usize("terminal.integrated.scrollback"),
             minimum_contrast: None,
             option_as_meta: self.read_bool("terminal.integrated.macOptionIsMeta"),
+            profiles: None,
             project: self.project_terminal_settings_content(),
             scrollbar: None,
             scroll_multiplier: None,
