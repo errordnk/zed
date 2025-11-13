@@ -22,13 +22,13 @@ agent-client-protocol.workspace = true
 agent.workspace = true
 agent_servers.workspace = true
 agent_settings.workspace = true
-ai_onboarding.workspace = true
+# ai_onboarding.workspace # REMOVED = true
 anyhow.workspace = true
 arrayvec.workspace = true
 assistant_text_thread.workspace = true
 assistant_slash_command.workspace = true
 assistant_slash_commands.workspace = true
-audio.workspace = true
+# audio.workspace # REMOVED = true
 buffer_diff.workspace = true
 chrono.workspace = true
 client.workspace = true
@@ -38,9 +38,8 @@ command_palette_hooks.workspace = true
 component.workspace = true
 context_server.workspace = true
 db.workspace = true
-editor.workspace = true
-extension.workspace = true
-extension_host.workspace = true
+# extension.workspace # REMOVED = true
+# extension_host.workspace # REMOVED = true
 feature_flags.workspace = true
 file_icons.workspace = true
 fs.workspace = true
@@ -59,7 +58,6 @@ log.workspace = true
 lsp.workspace = true
 markdown.workspace = true
 menu.workspace = true
-multi_buffer.workspace = true
 notifications.workspace = true
 ordered-float.workspace = true
 parking_lot.workspace = true
@@ -74,7 +72,7 @@ release_channel.workspace = true
 rope.workspace = true
 rules_library.workspace = true
 schemars.workspace = true
-search.workspace = true
+# search.workspace # REMOVED = true
 serde.workspace = true
 serde_json.workspace = true
 serde_json_lenient.workspace = true
@@ -105,11 +103,9 @@ agent = { workspace = true, features = ["test-support"] }
 assistant_text_thread = { workspace = true, features = ["test-support"] }
 buffer_diff = { workspace = true, features = ["test-support"] }
 db = { workspace = true, features = ["test-support"] }
-editor = { workspace = true, features = ["test-support"] }
 gpui = { workspace = true, "features" = ["test-support"] }
 indoc.workspace = true
 language = { workspace = true, "features" = ["test-support"] }
-languages = { workspace = true, features = ["test-support"] }
 language_model = { workspace = true, "features" = ["test-support"] }
 pretty_assertions.workspace = true
 project = { workspace = true, features = ["test-support"] }

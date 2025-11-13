@@ -14,9 +14,7 @@ doctest = false
 
 [features]
 default = []
-stories = ["dep:story"]
 test-support = [
-    "call/test-support",
     "client/test-support",
     "collections/test-support",
     "gpui/test-support",
@@ -29,8 +27,8 @@ test-support = [
 [dependencies]
 anyhow.workspace = true
 auto_update.workspace = true
-call.workspace = true
-channel.workspace = true
+# call.workspace # REMOVED = true
+# channel.workspace # REMOVED = true
 chrono.workspace = true
 client.workspace = true
 cloud_llm_client.workspace = true
@@ -38,13 +36,13 @@ db.workspace = true
 gpui = { workspace = true, features = ["screen-capture"] }
 notifications.workspace = true
 project.workspace = true
-remote.workspace = true
+# remote.workspace # REMOVED = true
 rpc.workspace = true
 schemars.workspace = true
 serde.workspace = true
 settings.workspace = true
 smallvec.workspace = true
-story = { workspace = true, optional = true }
+# story = { workspace # REMOVED = true, optional = true }
 telemetry.workspace = true
 theme.workspace = true
 ui.workspace = true
@@ -56,7 +54,6 @@ zed_actions.workspace = true
 windows.workspace = true
 
 [dev-dependencies]
-call = { workspace = true, features = ["test-support"] }
 client = { workspace = true, features = ["test-support"] }
 collections = { workspace = true, features = ["test-support"] }
 gpui = { workspace = true, features = ["test-support"] }

@@ -5,7 +5,7 @@ use std::{
     str::FromStr,
 };
 
-use editor::{Editor, EditorStyle};
+use crate::{Editor, EditorStyle}; // Using stub types from ui_input
 use gpui::{ClickEvent, Entity, FocusHandle, Focusable, FontWeight, Modifiers};
 
 use settings::{CenteredPaddingSettings, CodeFade, DelayMs, InactiveOpacity, MinimumContrast};

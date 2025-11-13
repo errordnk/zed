@@ -16,7 +16,7 @@ test-support = ["rand"]
 
 [dependencies]
 anyhow.workspace = true
-askpass.workspace = true
+# askpass.workspace = true # REMOVED: askpass crate deleted
 async-trait.workspace = true
 collections.workspace = true
 derive_more.workspace = true

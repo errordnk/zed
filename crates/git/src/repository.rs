@@ -30,7 +30,16 @@ use util::rel_path::RelPath;
 use util::{ResultExt, paths};
 use uuid::Uuid;
 
-pub use askpass::{AskPassDelegate, AskPassResult, AskPassSession};
+// REMOVED: askpass crate deleted - creating stub types
+// pub use askpass::{AskPassDelegate, AskPassResult, AskPassSession};
+
+// Stub types for deleted askpass crate
+pub struct AskPassDelegate;
+pub struct AskPassSession;
+pub enum AskPassResult {
+    Success,
+    Error(String),
+}
 
 pub const REMOTE_CANCELLED_BY_USER: &str = "Operation cancelled by user";
 

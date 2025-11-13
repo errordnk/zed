@@ -17,7 +17,6 @@ assistant_slash_command.workspace = true
 chrono.workspace = true
 collections.workspace = true
 context_server.workspace = true
-editor.workspace = true
 feature_flags.workspace = true
 fs.workspace = true
 futures.workspace = true

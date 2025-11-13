@@ -12,7 +12,7 @@ workspace = true
 path = "src/snippets_ui.rs"
 
 [dependencies]
-file_finder.workspace = true
+# file_finder.workspace # REMOVED = true
 file_icons.workspace = true
 fuzzy.workspace = true
 gpui.workspace = true

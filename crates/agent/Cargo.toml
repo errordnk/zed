@@ -69,7 +69,7 @@ ui.workspace = true
 util.workspace = true
 uuid.workspace = true
 watch.workspace = true
-web_search.workspace = true
+# web_search.workspace # REMOVED = true
 zed_env_vars.workspace = true
 zstd.workspace = true
 
@@ -81,7 +81,6 @@ clock = { workspace = true, "features" = ["test-support"] }
 context_server = { workspace = true, "features" = ["test-support"] }
 ctor.workspace = true
 db = { workspace = true, "features" = ["test-support"] }
-editor = { workspace = true, "features" = ["test-support"] }
 env_logger.workspace = true
 fs = { workspace = true, "features" = ["test-support"] }
 git = { workspace = true, "features" = ["test-support"] }

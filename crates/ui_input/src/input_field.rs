@@ -1,5 +1,5 @@
 use component::{example_group, single_example};
-use editor::{Editor, EditorElement, EditorStyle};
+use crate::{Editor, EditorElement, EditorStyle}; // Using stub types from ui_input
 use gpui::{App, Entity, FocusHandle, Focusable, FontStyle, Hsla, Length, TextStyle};
 use settings::Settings;
 use std::sync::Arc;

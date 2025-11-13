@@ -13,7 +13,7 @@ path = "src/theme_extension.rs"
 
 [dependencies]
 anyhow.workspace = true
-extension.workspace = true
+# extension.workspace # REMOVED = true
 fs.workspace = true
 gpui.workspace = true
 theme.workspace = true

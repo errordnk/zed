@@ -17,17 +17,15 @@ doctest = false
 test-support = []
 
 [dependencies]
-ai_onboarding.workspace = true
+# ai_onboarding.workspace # REMOVED = true
 anyhow.workspace = true
 arrayvec.workspace = true
 client.workspace = true
 cloud_llm_client.workspace = true
 collections.workspace = true
 command_palette_hooks.workspace = true
-copilot.workspace = true
+# copilot.workspace # REMOVED = true
 db.workspace = true
-edit_prediction.workspace = true
-editor.workspace = true
 feature_flags.workspace = true
 fs.workspace = true
 futures.workspace = true
@@ -60,13 +58,11 @@ worktree.workspace = true
 zed_actions.workspace = true
 
 [dev-dependencies]
-call = { workspace = true, features = ["test-support"] }
 client = { workspace = true, features = ["test-support"] }
 clock = { workspace = true, features = ["test-support"] }
 cloud_api_types.workspace = true
 collections = { workspace = true, features = ["test-support"] }
 ctor.workspace = true
-editor = { workspace = true, features = ["test-support"] }
 gpui = { workspace = true, features = ["test-support"] }
 http_client = { workspace = true, features = ["test-support"] }
 indoc.workspace = true

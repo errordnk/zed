@@ -14,7 +14,7 @@ test-support = []
 [dependencies]
 anyhow.workspace = true
 collections.workspace = true
-extension.workspace = true
+# extension.workspace # REMOVED = true
 fs.workspace = true
 futures.workspace = true
 gpui.workspace = true
