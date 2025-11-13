@@ -2316,7 +2316,7 @@ async fn run_git_command(
 }
 
 async fn run_askpass_command(
-    mut ask_pass: AskPassSession,
+    ask_pass: AskPassSession,
     git_process: smol::process::Child,
 ) -> anyhow::Result<RemoteCommandOutput> {
     select_biased! {
