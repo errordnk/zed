@@ -2,14 +2,14 @@
 //! Debugger removed in Phase 3 - these stubs allow project crate to compile
 
 use anyhow::Result;
-use gpui::{App, AppContext, Entity, EventEmitter};
+use gpui::{App, Entity, EventEmitter};
 use std::sync::Arc;
 
 // Breakpoint store stubs
 pub mod breakpoint_store {
     use super::*;
     use crate::{BufferStore, WorktreeStore};
-    use rpc::AnyProtoClient;
+    use rpc::ProtoClient;
 
     #[derive(Clone, Copy, Debug)]
     pub struct BreakpointWithPosition;
@@ -20,13 +20,13 @@ pub mod breakpoint_store {
     pub struct BreakpointStore;
 
     impl BreakpointStore {
-        pub fn init(_client: &Arc<impl AnyProtoClient + 'static>) {}
+        pub fn init<C: ProtoClient + 'static>(_client: &Arc<C>) {}
 
         pub fn local(_worktree_store: Entity<WorktreeStore>, _buffer_store: Entity<BufferStore>) -> Self {
             Self
         }
 
-        pub fn remote(_project_id: u64, _client: Arc<impl AnyProtoClient + 'static>) -> Self {
+        pub fn remote<C: ProtoClient + 'static>(_project_id: u64, _client: Arc<C>) -> Self {
             Self
         }
     }
@@ -39,7 +39,7 @@ pub mod dap_store {
     use super::*;
     use crate::WorktreeStore;
     use client::Client;
-    use rpc::proto;
+    use rpc::ProtoClient;
 
     #[derive(Clone)]
     pub enum DapStoreEvent {
@@ -49,7 +49,7 @@ pub mod dap_store {
     pub struct DapStore;
 
     impl DapStore {
-        pub fn init(_client: &Arc<impl rpc::AnyProtoClient + 'static>, _cx: &mut App) {}
+        pub fn init<C: ProtoClient + 'static>(_client: &Arc<C>, _cx: &mut App) {}
 
         pub fn new_local(_worktree_store: Entity<WorktreeStore>, _client: Arc<Client>, _cx: &mut App) -> Entity<Self> {
             panic!("Debugger not available in terminal fork")
@@ -64,9 +64,9 @@ pub mod dap_store {
             panic!("Debugger not available in terminal fork")
         }
 
-        pub fn new_collab(
+        pub fn new_collab<C: ProtoClient + 'static>(
             _project_id: u64,
-            _client: Arc<impl rpc::AnyProtoClient + 'static>,
+            _client: Arc<C>,
             _worktree_store: Entity<WorktreeStore>,
             _cx: &mut App,
         ) -> Result<Entity<Self>> {
