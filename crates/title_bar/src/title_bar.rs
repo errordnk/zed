@@ -43,6 +43,7 @@ use ui::{
 use util::{ResultExt, rel_path::RelPath};
 use workspace::{Workspace, notifications::NotifyResultExt};
 use zed_actions::{OpenRecent, OpenRemote};
+use terminal_view::TerminalPanel;
 
 pub use onboarding_banner::restore_banner;
 
@@ -174,6 +175,17 @@ impl Render for TitleBar {
                 .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
                 .into_any_element(),
         );
+
+        // Render terminal tabs in title bar (Windows Terminal style)
+        if let Some(workspace) = self.workspace.upgrade() {
+            if let Some(terminal_panel) = workspace.read(cx).panel::<TerminalPanel>(cx) {
+                if let Some(tabs) = terminal_panel.update(cx, |panel, cx| {
+                    panel.render_title_bar_tabs(window, cx)
+                }).ok().flatten() {
+                    children.push(tabs);
+                }
+            }
+        }
 
         children.push(self.render_collaborator_list(window, cx).into_any_element());
 

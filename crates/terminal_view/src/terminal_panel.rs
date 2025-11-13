@@ -1034,6 +1034,21 @@ impl TerminalPanel {
         self.assistant_enabled
     }
 
+    /// Render terminal tabs for display in the title bar
+    pub fn render_title_bar_tabs(&mut self, window: &mut Window, cx: &mut Context<Self>) -> Option<AnyElement> {
+        if self.has_no_terminals(cx) {
+            return None;
+        }
+
+        self.active_pane.update(cx, |pane, cx| {
+            Some(pane.render_tab_bar(window, cx))
+        }).ok().flatten()
+    }
+
+    pub fn active_pane(&self) -> &Entity<Pane> {
+        &self.active_pane
+    }
+
     fn is_enabled(&self, cx: &App) -> bool {
         self.workspace
             .upgrade()
@@ -1109,7 +1124,8 @@ pub fn new_terminal_pane(
         pane.set_zoomed(zoomed, cx);
         pane.set_can_navigate(false, cx);
         pane.display_nav_history_buttons(None);
-        pane.set_should_display_tab_bar(|_, _| true);
+        // Hide tab bar in panel - tabs are now shown in title bar (Windows Terminal style)
+        pane.set_should_display_tab_bar(|_, _| false);
         pane.set_zoom_out_on_close(false);
 
         let split_closure_terminal_panel = terminal_panel.downgrade();

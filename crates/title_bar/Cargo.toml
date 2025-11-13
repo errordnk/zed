@@ -36,8 +36,8 @@ db.workspace = true
 gpui = { workspace = true, features = ["screen-capture"] }
 notifications.workspace = true
 project.workspace = true
-# remote.workspace # REMOVED = true
 rpc.workspace = true
+terminal_view.workspace = true
 schemars.workspace = true
 serde.workspace = true
 settings.workspace = true
