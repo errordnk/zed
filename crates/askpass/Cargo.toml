@@ -1,0 +1,16 @@
+[package]
+name = "askpass"
+version = "0.1.0"
+edition = "2021"
+publish = false
+license = "GPL-3.0-or-later"
+
+[lints]
+workspace = true
+
+[lib]
+path = "src/askpass.rs"
+doctest = false
+
+[dependencies]
+anyhow.workspace = true

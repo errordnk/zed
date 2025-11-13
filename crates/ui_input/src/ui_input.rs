@@ -32,7 +32,7 @@ mod editor_stub {
             // Stub - no-op
         }
 
-        pub fn set_text(&mut self, _text: impl Into<String>, _window: &mut Window, _cx: &mut Context<Self>) {
+        pub fn set_text(&mut self, _text: impl Into<std::sync::Arc<str>>, _window: &mut Window, _cx: &mut Context<Self>) {
             // Stub - no-op
         }
     }

@@ -1,0 +1,16 @@
+[package]
+name = "edit_prediction"
+version = "0.1.0"
+edition = "2021"
+publish = false
+license = "GPL-3.0-or-later"
+
+[lints]
+workspace = true
+
+[lib]
+path = "src/edit_prediction.rs"
+doctest = false
+
+[dependencies]
+gpui.workspace = true
