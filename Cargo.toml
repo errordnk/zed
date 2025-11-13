@@ -154,11 +154,13 @@ agent_servers = { path = "crates/agent_servers" }
 ai = { path = "crates/ai" }
 anthropic = { path = "crates/anthropic" }
 assets = { path = "crates/assets" }
+askpass = { path = "crates/askpass" }
 auto_update = { path = "crates/auto_update" }
 auto_update_helper = { path = "crates/auto_update_helper" }
 auto_update_ui = { path = "crates/auto_update_ui" }
 aws_http_client = { path = "crates/aws_http_client" }
 bedrock = { path = "crates/bedrock" }
+buffer_diff = { path = "crates/buffer_diff" }
 cli = { path = "crates/cli" }
 client = { path = "crates/client" }
 clock = { path = "crates/clock" }
@@ -173,15 +175,19 @@ context_server = { path = "crates/context_server" }
 crashes = { path = "crates/crashes" }
 credentials_provider = { path = "crates/credentials_provider" }
 crossbeam = "0.8.4"
+dap = { path = "crates/dap" }
 db = { path = "crates/db" }
 deepseek = { path = "crates/deepseek" }
 derive_refineable = { path = "crates/refineable/derive_refineable" }
+extension = { path = "crates/extension" }
+extension_host = { path = "crates/extension_host" }
 feature_flags = { path = "crates/feature_flags" }
 file_icons = { path = "crates/file_icons" }
 fs = { path = "crates/fs" }
 fsevent = { path = "crates/fsevent" }
 fuzzy = { path = "crates/fuzzy" }
 git = { path = "crates/git" }
+git_hosting_providers = { path = "crates/git_hosting_providers" }
 google_ai = { path = "crates/google_ai" }
 gpui = { path = "crates/gpui", default-features = false }
 gpui_macros = { path = "crates/gpui_macros" }
@@ -214,11 +220,13 @@ perf = { path = "tooling/perf" }
 picker = { path = "crates/picker" }
 plugin = { path = "crates/plugin" }
 plugin_macros = { path = "crates/plugin_macros" }
+prettier = { path = "crates/prettier" }
 settings_profile_selector = { path = "crates/settings_profile_selector" }
 project = { path = "crates/project" }
 proto = { path = "crates/proto" }
 refineable = { path = "crates/refineable" }
 release_channel = { path = "crates/release_channel" }
+remote = { path = "crates/remote" }
 scheduler = { path = "crates/scheduler" }
 reqwest_client = { path = "crates/reqwest_client" }
 rich_text = { path = "crates/rich_text" }
@@ -231,6 +239,8 @@ settings = { path = "crates/settings" }
 settings_json = { path = "crates/settings_json" }
 settings_macros = { path = "crates/settings_macros" }
 settings_ui = { path = "crates/settings_ui" }
+snippet = { path = "crates/snippet" }
+snippet_provider = { path = "crates/snippet_provider" }
 sqlez = { path = "crates/sqlez" }
 sqlez_macros = { path = "crates/sqlez_macros" }
 sum_tree = { path = "crates/sum_tree" }
