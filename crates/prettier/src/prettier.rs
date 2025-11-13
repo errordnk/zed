@@ -4,6 +4,11 @@
 use anyhow::Result;
 use gpui::{App, Entity};
 
+// Constants
+pub const FAIL_THRESHOLD: usize = 10;
+pub const PRETTIER_SERVER_FILE: &str = "prettier_server.js";
+pub const PRETTIER_SERVER_JS: &str = include_str!("../prettier_server.js");
+
 #[derive(Clone)]
 pub struct Prettier;
 

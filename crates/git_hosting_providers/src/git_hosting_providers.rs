@@ -43,6 +43,10 @@ pub fn parse_git_remote_url(_url: &str) -> Option<ParsedGitRemote> {
     None
 }
 
+pub fn register_additional_providers(_providers: Vec<GitHostingProvider>) {
+    // Git hosting providers registration not needed in terminal fork
+}
+
 pub fn init() -> Result<()> {
     // Git hosting providers not needed in terminal fork
     Ok(())
