@@ -195,28 +195,15 @@ impl Render for TitleBar {
 
         let status = self.client.status();
         let status = &*status.borrow();
-        let user = self.user_store.read(cx).current_user();
 
-        let signed_in = user.is_some();
-
+        // No user menu/sign-in needed - settings accessible via Ctrl+, and Command Palette
         children.push(
             h_flex()
-                .map(|this| {
-                    if signed_in {
-                        this.pr_1p5()
-                    } else {
-                        this.pr_1()
-                    }
-                })
+                .pr_1()
                 .gap_1()
                 .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
                 .children(self.render_call_controls(window, cx))
                 .children(self.render_connection_status(status, cx))
-                .when(
-                    user.is_none() && TitleBarSettings::get_global(cx).show_sign_in,
-                    |el| el.child(self.render_sign_in_button(cx)),
-                )
-                .child(self.render_app_menu_button(cx))
                 .into_any_element(),
         );
 
