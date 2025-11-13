@@ -2,12 +2,9 @@
 //! The dap crate was removed in Phase 2. This stub provides minimal types for compilation.
 
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
-
-// Re-export for nested modules
-pub use self::{client::*, inline_value::*, requests::*};
 
 pub mod client {
+    pub type SessionId = usize;
     pub struct DebugAdapterClient;
 }
 
@@ -15,13 +12,13 @@ pub mod inline_value {
     #[derive(Clone, Debug)]
     pub struct InlineValueLocation;
 
-    #[derive(Clone, Debug)]
+    #[derive(Clone, Debug, PartialEq, Eq)]
     pub enum VariableLookupKind {
         Indexed,
         Named,
     }
 
-    #[derive(Clone, Debug)]
+    #[derive(Clone, Debug, PartialEq, Eq)]
     pub enum VariableScope {
         Local,
         Global,
@@ -29,9 +26,86 @@ pub mod inline_value {
 }
 
 pub mod requests {
+    pub trait Request {
+        type Arguments;
+        type Response;
+    }
+
+    pub struct Initialize;
     pub struct Terminate;
     pub struct Disconnect;
+    pub struct ConfigurationDone;
+    pub struct Launch;
+    pub struct Attach;
+    pub struct Threads;
+    pub struct StackTrace;
+    pub struct Scopes;
+    pub struct Variables;
+    pub struct Evaluate;
+    pub struct SetVariable;
+    pub struct Completions;
+    pub struct SetBreakpoints;
+    pub struct SetDataBreakpoints;
+    pub struct SetExceptionBreakpoints;
+    pub struct DataBreakpointInfo;
+    pub struct Modules;
+    pub struct LoadedSources;
+    pub struct Locations;
+    pub struct ReadMemory;
+    pub struct WriteMemory;
+    pub struct StepIn;
+    pub struct StepOut;
+    pub struct StepBack;
+    pub struct Continue;
+    pub struct Pause;
+    pub struct TerminateThreads;
+    pub struct Restart;
+    pub struct RestartFrame;
+    pub struct RunInTerminal;
+    pub struct StartDebugging;
 }
+
+pub mod messages {
+    use serde::{Deserialize, Serialize};
+
+    #[derive(Clone, Debug, Serialize, Deserialize)]
+    pub struct Request {
+        pub seq: i64,
+        pub command: String,
+    }
+
+    #[derive(Clone, Debug, Serialize, Deserialize)]
+    pub struct Response {
+        pub request_seq: i64,
+        pub success: bool,
+        pub command: String,
+    }
+}
+
+pub mod adapters {
+    #[derive(Clone, Debug)]
+    pub struct DebugAdapterName(pub String);
+
+    #[derive(Clone, Debug)]
+    pub struct DebugAdapterBinary {
+        pub path: String,
+        pub args: Vec<String>,
+    }
+
+    pub trait DapDelegate {}
+}
+
+pub mod transport {
+    pub struct TcpTransport;
+
+    impl TcpTransport {
+        pub async fn unused_port(_host: &str) -> anyhow::Result<u16> {
+            Ok(9229) // Stub port
+        }
+    }
+}
+
+pub type StackFrameId = i64;
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Source {
@@ -354,3 +428,156 @@ pub struct CompletionItem {
     pub selection_start: Option<i64>,
     pub selection_length: Option<i64>,
 }
+
+// Additional types and enums used in project
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub enum EvaluateArgumentsContext {
+    Watch,
+    Repl,
+    Hover,
+    Clipboard,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub enum BreakpointEventReason {
+    Changed,
+    New,
+    Removed,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ThreadEventReason {
+    Started,
+    Exited,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ModuleEventReason {
+    New,
+    Changed,
+    Removed,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub enum StartDebuggingRequestArgumentsRequest {
+    Launch,
+    Attach,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct CompletionsResponse {
+    pub targets: Vec<CompletionItem>,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct StepBackArguments {
+    pub thread_id: i64,
+    pub single_thread: Option<bool>,
+    pub granularity: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct PauseArguments {
+    pub thread_id: i64,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct TerminateThreadsArguments {
+    pub thread_ids: Option<Vec<i64>>,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct RestartArguments {
+    pub arguments: Option<serde_json::Value>,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct VariablesArguments {
+    pub variables_reference: i64,
+    pub filter: Option<String>,
+    pub start: Option<i64>,
+    pub count: Option<i64>,
+    pub format: Option<ValueFormat>,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct SetVariableArguments {
+    pub variables_reference: i64,
+    pub name: String,
+    pub value: String,
+    pub format: Option<ValueFormat>,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct RestartFrameArguments {
+    pub frame_id: i64,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct ModulesArguments {
+    pub start_module: Option<i64>,
+    pub module_count: Option<i64>,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct LoadedSourcesArguments {}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct StackTraceArguments {
+    pub thread_id: i64,
+    pub start_frame: Option<i64>,
+    pub levels: Option<i64>,
+    pub format: Option<StackFrameFormat>,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct StackFrameFormat {
+    pub parameters: Option<bool>,
+    pub parameter_types: Option<bool>,
+    pub parameter_names: Option<bool>,
+    pub parameter_values: Option<bool>,
+    pub line: Option<bool>,
+    pub module: Option<bool>,
+    pub include_all: Option<bool>,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct ScopesArguments {
+    pub frame_id: i64,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct CompletionsArguments {
+    pub frame_id: Option<i64>,
+    pub text: String,
+    pub column: i64,
+    pub line: Option<i64>,
+}
+
+// Stub ProtoConversion trait for compatibility
+pub trait ProtoConversion: Sized {
+    fn from_proto(value: impl Into<Self>) -> anyhow::Result<Self> {
+        Ok(value.into())
+    }
+    fn to_proto(&self) -> Self where Self: Clone {
+        self.clone()
+    }
+}
+
+// Implement for all DAP types
+impl ProtoConversion for Source {}
+impl ProtoConversion for Module {}
+impl ProtoConversion for StackFrame {}
+impl ProtoConversion for Scope {}
+impl ProtoConversion for Thread {}
+impl ProtoConversion for Variable {}
+impl ProtoConversion for Breakpoint {}
+impl ProtoConversion for DataBreakpoint {}
+
+// DapRegistry and DapLocator stubs
+pub struct DapRegistry;
+
+pub trait DapLocator {}
+
+pub struct DebugRequest;
