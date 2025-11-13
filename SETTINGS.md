@@ -153,10 +153,12 @@ Configure multiple AI providers:
 }
 ```
 
-**Built-in providers (via Zed Pro):**
-- `zed.dev` - Claude, GPT (Codex), Gemini, Grok via single subscription
-  - **No API keys needed** - auth via Zed account
-  - **Limits tracked by Zed** - uses your Zed Pro quota, not personal AI subscriptions
+**Built-in providers (via Zed account - Free or Pro):**
+- `zed.dev` - Claude, GPT (Codex), Gemini, Grok via Zed subscription
+  - **No API keys needed** - auth via Zed account (GitHub login)
+  - **Zed Free** (default) - Limited free access to Claude and other models
+  - **Zed Pro** ($10/month) - Higher limits and priority access
+  - **Limits tracked by Zed** - uses your Zed plan quota (not personal AI subscriptions)
   - Requests proxied through `zed.dev` servers
 
 **Direct API providers (uses your own subscriptions):**
@@ -174,6 +176,29 @@ Configure multiple AI providers:
 
 **Custom providers:**
 - `openai_compatible` - Add any OpenAI-compatible API
+
+---
+
+**Important: Zed subscriptions vs AI provider subscriptions**
+
+These are **separate and independent**:
+
+1. **Zed subscription** (zed.dev/account)
+   - Controls access through `zed.dev` provider
+   - **Zed Free**: Limited free access to Claude, GPT, Gemini
+   - **Zed Pro**: Higher limits via Zed's proxy
+   - Unrelated to your personal Claude/GPT subscriptions
+
+2. **AI provider subscriptions** (e.g., Claude Pro on claude.ai)
+   - For direct API access via `anthropic`, `openai` providers
+   - Requires API keys (environment variables)
+   - Uses your personal quota directly
+
+**Example**: You can have:
+- Claude Pro subscription on claude.ai ($20/month)
+- Zed Free account (free)
+- Use Claude in Zed via `zed.dev` provider with Zed Free limits
+- Your Claude Pro subscription quota is NOT used by Zed
 
 ### 5. Agent Settings
 
