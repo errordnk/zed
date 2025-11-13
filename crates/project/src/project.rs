@@ -4,7 +4,6 @@ mod color_extractor;
 pub mod connection_manager;
 pub mod context_server_store;
 pub mod debounced_delay;
-pub mod debugger;
 pub mod git_store;
 pub mod image_store;
 pub mod lsp_command;
@@ -34,12 +33,9 @@ pub mod search_history;
 mod yarn;
 
 // Use stubs instead of removed crates
-use crate::stubs::dap;
 use crate::stubs::git_hosting_providers;
 use crate::stubs::prettier;
 use crate::stubs::remote;
-
-use dap::inline_value::{InlineValueLocation, VariableLookupKind, VariableScope};
 
 use crate::{
     git_store::GitStore,
