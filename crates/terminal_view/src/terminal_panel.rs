@@ -22,7 +22,7 @@ use settings::{Settings, TerminalDockPosition};
 use task::{RevealStrategy, RevealTarget, Shell, ShellBuilder, SpawnInTerminal, TaskId};
 use terminal::{Terminal, terminal_settings::TerminalSettings};
 use ui::{
-    ButtonLike, Clickable, ContextMenu, FluentBuilder, PopoverMenu, SplitButton, Toggleable,
+    ButtonLike, Clickable, ContextMenu, FluentBuilder, IconButton, PopoverMenu, SplitButton, Toggleable,
     Tooltip, prelude::*,
 };
 use util::{ResultExt, TryFutureExt};
@@ -1034,15 +1034,56 @@ impl TerminalPanel {
         self.assistant_enabled
     }
 
-    /// Render terminal tabs for display in the title bar
+    /// Render terminal tabs for display in the title bar (Windows Terminal style)
     pub fn render_title_bar_tabs(&mut self, window: &mut Window, cx: &mut Context<Self>) -> Option<AnyElement> {
         if self.has_no_terminals(cx) {
             return None;
         }
 
-        self.active_pane.update(cx, |pane, cx| {
-            Some(pane.render_tab_bar(window, cx))
-        }).ok().flatten()
+        let tabs = self.active_pane.update(cx, |pane, cx| {
+            pane.render_tab_bar(window, cx)
+        }).ok()?;
+
+        // Create + button for new terminal (Windows Terminal style)
+        let new_terminal_button = IconButton::new("new-terminal-tab", IconName::Plus)
+            .icon_size(IconSize::Small)
+            .tooltip(|_window, cx| Tooltip::for_action("New Terminal", &workspace::NewTerminal, cx))
+            .on_click(cx.listener(|_panel, _event, window, cx| {
+                window.dispatch_action(workspace::NewTerminal.boxed_clone(), cx);
+            }));
+
+        // Create dropdown menu for connection profiles (Windows Terminal style)
+        let profiles_menu = PopoverMenu::new("terminal-profiles-menu")
+            .trigger(
+                IconButton::new("terminal-profiles", IconName::ChevronDown)
+                    .icon_size(IconSize::Small)
+                    .tooltip(|_window, _cx| Tooltip::text("Connection Profiles"))
+            )
+            .menu(move |window, cx| {
+                Some(ContextMenu::build(window, cx, |menu, _, _| {
+                    menu.action("Local Shell", workspace::NewTerminal.boxed_clone())
+                        .separator()
+                        .custom_entry(
+                            |_window, _cx| {
+                                Label::new("SSH profiles coming soon...")
+                                    .size(LabelSize::Small)
+                                    .color(Color::Muted)
+                                    .into_any_element()
+                            },
+                            |_, _| {}
+                        )
+                }))
+            });
+
+        Some(
+            h_flex()
+                .gap_1()
+                .items_center()
+                .child(tabs)
+                .child(new_terminal_button)
+                .child(profiles_menu)
+                .into_any_element()
+        )
     }
 
     pub fn active_pane(&self) -> &Entity<Pane> {
