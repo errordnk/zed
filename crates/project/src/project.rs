@@ -53,17 +53,18 @@ use buffer_store::{BufferStore, BufferStoreEvent};
 use client::{Client, Collaborator, PendingEntitySubscription, TypedEnvelope, UserStore, proto};
 use clock::ReplicaId;
 
-// Removed: debugger not needed in terminal fork
-// use dap::client::DebugAdapterClient;
+use crate::stubs::dap;
+use crate::stubs::dap::client::DebugAdapterClient;
+use crate::stubs::dap::inline_value::{InlineValueLocation, VariableLookupKind, VariableScope};
 
 use collections::{BTreeSet, HashMap, HashSet, IndexSet};
 use debounced_delay::DebouncedDelay;
-// pub use debugger::breakpoint_store::BreakpointWithPosition;
-// use debugger::{
-//     breakpoint_store::{ActiveStackFrame, BreakpointStore},
-//     dap_store::{DapStore, DapStoreEvent},
-//     session::Session,
-// };
+pub use crate::stubs::debugger::breakpoint_store::BreakpointWithPosition;
+use crate::stubs::debugger::{
+    breakpoint_store::{ActiveStackFrame, BreakpointStore},
+    dap_store::{DapStore, DapStoreEvent},
+    session::Session,
+};
 pub use environment::ProjectEnvironment;
 #[cfg(test)]
 use futures::future::join_all;

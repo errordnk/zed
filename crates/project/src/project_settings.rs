@@ -1,7 +1,7 @@
 use anyhow::Context as _;
 use collections::HashMap;
 use context_server::ContextServerCommand;
-// use dap::adapters::DebugAdapterName; // Removed: debugger not needed in terminal fork
+use crate::stubs::dap::adapters::DebugAdapterName;
 use fs::Fs;
 use futures::StreamExt as _;
 use gpui::{AsyncApp, BorrowAppContext, Context, Entity, EventEmitter, Subscription, Task};
@@ -52,8 +52,8 @@ pub struct ProjectSettings {
     /// Common language server settings.
     pub global_lsp_settings: GlobalLspSettings,
 
-    // /// Configuration for Debugger-related features (Removed: debugger not needed in terminal fork)
-    // pub dap: HashMap<DebugAdapterName, DapSettings>,
+    /// Configuration for Debugger-related features (stub - debugger removed)
+    pub dap: HashMap<DebugAdapterName, DapSettings>,
 
     /// Settings for context servers used for AI-related features.
     pub context_servers: HashMap<Arc<str>, ContextServerSettings>,
@@ -493,12 +493,12 @@ impl Settings for ProjectSettings {
                     .button
                     .unwrap(),
             },
-            // dap: project // Removed: debugger not needed in terminal fork
-            //     .dap
-            //     .clone()
-            //     .into_iter()
-            //     .map(|(key, value)| (DebugAdapterName(key.into()), DapSettings::from(value)))
-            //     .collect(),
+            dap: project
+                .dap
+                .clone()
+                .into_iter()
+                .map(|(key, value)| (DebugAdapterName(key.into()), DapSettings::from(value)))
+                .collect(),
             diagnostics: DiagnosticsSettings {
                 button: diagnostics.button.unwrap(),
                 include_warnings: diagnostics.include_warnings.unwrap(),
