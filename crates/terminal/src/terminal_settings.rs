@@ -15,6 +15,47 @@ use settings::{
 use task::Shell;
 use theme::FontFamilyName;
 
+/// Terminal connection profile (Windows Terminal style)
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum TerminalProfile {
+    /// Local shell connection (default)
+    Local {
+        /// Display name for the profile
+        name: String,
+    },
+    /// SSH connection profile
+    Ssh {
+        /// Display name for the profile
+        name: String,
+        /// SSH host address
+        host: String,
+        /// SSH username
+        #[serde(default)]
+        user: Option<String>,
+        /// SSH port (default: 22)
+        #[serde(default = "default_ssh_port")]
+        port: u16,
+    },
+}
+
+fn default_ssh_port() -> u16 {
+    22
+}
+
+impl TerminalProfile {
+    pub fn name(&self) -> &str {
+        match self {
+            TerminalProfile::Local { name } => name,
+            TerminalProfile::Ssh { name, .. } => name,
+        }
+    }
+
+    pub fn is_local(&self) -> bool {
+        matches!(self, TerminalProfile::Local { .. })
+    }
+}
+
 #[derive(Copy, Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 pub struct Toolbar {
     pub breadcrumbs: bool,
@@ -47,6 +88,8 @@ pub struct TerminalSettings {
     pub toolbar: Toolbar,
     pub scrollbar: ScrollbarSettings,
     pub minimum_contrast: f32,
+    /// Connection profiles (Windows Terminal style)
+    pub profiles: Vec<TerminalProfile>,
 }
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
@@ -116,6 +159,12 @@ impl settings::Settings for TerminalSettings {
                 show: user_content.scrollbar.unwrap().show,
             },
             minimum_contrast: user_content.minimum_contrast.unwrap(),
+            profiles: user_content.profiles.unwrap_or_else(|| {
+                // Default profile: Local Shell (always available)
+                vec![TerminalProfile::Local {
+                    name: "Local Shell".to_string(),
+                }]
+            }),
         }
     }
 }

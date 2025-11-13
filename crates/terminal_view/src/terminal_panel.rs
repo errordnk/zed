@@ -20,7 +20,7 @@ use project::{Fs, Project, ProjectEntryId};
 use search::{BufferSearchBar, buffer_search::DivRegistrar};
 use settings::{Settings, TerminalDockPosition};
 use task::{RevealStrategy, RevealTarget, Shell, ShellBuilder, SpawnInTerminal, TaskId};
-use terminal::{Terminal, terminal_settings::TerminalSettings};
+use terminal::{Terminal, terminal_settings::{TerminalSettings, TerminalProfile}};
 use ui::{
     ButtonLike, Clickable, ContextMenu, FluentBuilder, IconButton, PopoverMenu, SplitButton, Toggleable,
     Tooltip, prelude::*,
@@ -1052,7 +1052,10 @@ impl TerminalPanel {
                 window.dispatch_action(workspace::NewTerminal.boxed_clone(), cx);
             }));
 
-        // Create dropdown menu for connection profiles (Windows Terminal style)
+        // Get profiles from settings (Windows Terminal style)
+        let profiles = TerminalSettings::get_global(cx).profiles.clone();
+
+        // Create dropdown menu for connection profiles
         let profiles_menu = PopoverMenu::new("terminal-profiles-menu")
             .trigger(
                 IconButton::new("terminal-profiles", IconName::ChevronDown)
@@ -1060,18 +1063,46 @@ impl TerminalPanel {
                     .tooltip(|_window, _cx| Tooltip::text("Connection Profiles"))
             )
             .menu(move |window, cx| {
-                Some(ContextMenu::build(window, cx, |menu, _, _| {
-                    menu.action("Local Shell", workspace::NewTerminal.boxed_clone())
-                        .separator()
-                        .custom_entry(
-                            |_window, _cx| {
-                                Label::new("SSH profiles coming soon...")
-                                    .size(LabelSize::Small)
-                                    .color(Color::Muted)
+                let profiles = profiles.clone();
+                Some(ContextMenu::build(window, cx, move |mut menu, _, _| {
+                    for profile in &profiles {
+                        let profile_clone = profile.clone();
+                        let name = profile.name().to_string();
+                        menu = menu.custom_entry(
+                            move |_window, _cx| {
+                                h_flex()
+                                    .gap_2()
+                                    .child(
+                                        Icon::new(
+                                            if profile_clone.is_local() {
+                                                IconName::Terminal
+                                            } else {
+                                                IconName::Server
+                                            }
+                                        )
+                                        .size(IconSize::Small)
+                                    )
+                                    .child(Label::new(name.clone()))
                                     .into_any_element()
                             },
-                            |_, _| {}
-                        )
+                            {
+                                let profile = profile.clone();
+                                move |_, cx| {
+                                    // TODO: Implement profile connection
+                                    cx.spawn(|cx| async move {
+                                        log::info!("Connect to profile: {:?}", profile);
+                                        cx.update(|window, cx| {
+                                            window.dispatch_action(
+                                                workspace::NewTerminal.boxed_clone(),
+                                                cx
+                                            );
+                                        }).ok();
+                                    }).detach();
+                                }
+                            },
+                        );
+                    }
+                    menu
                 }))
             });
 

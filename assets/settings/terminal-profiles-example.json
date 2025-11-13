@@ -1,0 +1,55 @@
+{
+  // Terminal Connection Profiles (Windows Terminal style)
+  // Add this to your settings.json to configure SSH and local shell profiles
+
+  "terminal": {
+    // Connection profiles - shown in dropdown menu (▼) next to tabs
+    "profiles": [
+      // Local shell profile (default, always available)
+      {
+        "type": "local",
+        "name": "Local Shell"
+      },
+
+      // SSH connection examples
+      {
+        "type": "ssh",
+        "name": "Production Server",
+        "host": "prod.example.com",
+        "user": "admin",
+        "port": 22
+      },
+      {
+        "type": "ssh",
+        "name": "Development Server",
+        "host": "dev.example.com",
+        "user": "developer"
+        // port defaults to 22 if not specified
+      },
+      {
+        "type": "ssh",
+        "name": "Jump Host",
+        "host": "10.0.0.5",
+        "user": "ubuntu",
+        "port": 2222
+      }
+    ],
+
+    // Other terminal settings...
+    "shell": {
+      "program": "/bin/zsh"
+    },
+    "working_directory": "current_project_directory",
+    "font_size": 14,
+    "blinking": "terminal_controlled",
+    "alternate_scroll": "on",
+    "option_as_meta": false,
+    "copy_on_select": false,
+    "dock": "bottom",
+    "default_width": 640,
+    "default_height": 320,
+    "toolbar": {
+      "breadcrumbs": true
+    }
+  }
+}
