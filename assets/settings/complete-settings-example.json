@@ -135,68 +135,115 @@
   "wrap_guides": [80, 120],
 
   // ========== AI PROVIDERS ==========
+  // API keys are read from environment variables (ANTHROPIC_API_KEY, OPENAI_API_KEY, etc.)
+  // or from system keychain - NOT stored in settings.json
   "language_models": {
-    // Default provider
-    "default_provider": "anthropic",
+    // Anthropic Claude (direct API - requires ANTHROPIC_API_KEY env var)
+    "anthropic": {
+      "api_url": "https://api.anthropic.com"
+    },
 
-    // Provider configurations
-    "providers": {
-      // Anthropic Claude
-      "anthropic": {
-        "api_key": "sk-ant-...",
-        "api_url": "https://api.anthropic.com",
-        "default_model": "claude-3-5-sonnet-20241022",
-        "available_models": [
-          "claude-3-5-sonnet-20241022",
-          "claude-3-5-haiku-20241022",
-          "claude-3-opus-20240229"
-        ],
-        "timeout": 120
-      },
+    // OpenAI (direct API - requires OPENAI_API_KEY env var)
+    "openai": {
+      "api_url": "https://api.openai.com/v1"
+    },
 
-      // OpenAI
-      "openai": {
-        "api_key": "sk-...",
-        "api_url": "https://api.openai.com/v1",
-        "default_model": "gpt-4-turbo-preview",
-        "available_models": [
-          "gpt-4-turbo-preview",
-          "gpt-4",
-          "gpt-3.5-turbo"
-        ]
-      },
+    // Google Gemini (requires GOOGLE_API_KEY env var)
+    "google": {
+      "api_url": "https://generativelanguage.googleapis.com"
+    },
 
-      // Google AI
-      "google": {
-        "api_key": "...",
-        "default_model": "gemini-pro",
-        "available_models": [
-          "gemini-pro",
-          "gemini-pro-vision"
-        ]
-      },
+    // Ollama (local models)
+    "ollama": {
+      "api_url": "http://localhost:11434"
+    },
 
-      // Ollama (local)
-      "ollama": {
-        "api_url": "http://localhost:11434",
-        "default_model": "codellama:13b",
+    // Custom OpenAI-compatible providers
+    "openai_compatible": {
+      "opencode": {
+        "api_url": "https://api.opencode.com/v1",
         "available_models": [
-          "codellama:13b",
-          "mistral:7b",
-          "llama2:13b"
+          {
+            "name": "grok-code-fast1",
+            "display_name": "Grok Code Fast",
+            "max_tokens": 128000
+          }
         ]
       }
-    }
+    },
+
+    // Zed Pro built-in providers (no API keys needed)
+    // Includes: Claude, GPT (Codex), Gemini, Grok
+    "zed.dev": {}
   },
 
-  // AI assistant settings
-  "assistant": {
+  // ========== AGENT SETTINGS ==========
+  // Agent is the AI assistant with tool access
+  "agent": {
     "enabled": true,
-    "default_model": {
-      "provider": "anthropic",
-      "model": "claude-3-5-sonnet-20241022"
-    },
+    "button": true,
     "dock": "right",
+    "default_width": 640,
+
+    // Default model for new agent threads
+    "default_model": {
+      "provider": "zed.dev",  // Use Zed Pro built-in (no API key needed)
+      "model": "claude-sonnet-4"
+    },
+
+    // Default agent profile
+    "default_profile": "write",
+
+    // Agent profiles with different tool permissions
+    "profiles": {
+      "write": {
+        "name": "Write",
+        "enable_all_context_servers": true,
+        "tools": {
+          "read_file": true,
+          "edit_file": true,
+          "create_directory": true,
+          "delete_path": true,
+          "move_path": true,
+          "list_directory": true,
+          "grep": true,
+          "terminal": true,
+          "web_search": true,
+          "diagnostics": true,
+          "thinking": true
+        }
+      },
+      "ask": {
+        "name": "Ask",
+        "tools": {
+          "read_file": true,
+          "list_directory": true,
+          "grep": true,
+          "web_search": true,
+          "diagnostics": true,
+          "thinking": true
+        }
+      },
+      // Custom profile with different model
+      "code-review": {
+        "name": "Code Review",
+        "default_model": {
+          "provider": "opencode",
+          "model": "grok-code-fast1"
+        },
+        "tools": {
+          "read_file": true,
+          "grep": true,
+          "diagnostics": true
+        }
+      }
+    },
+
+    // Allow tools to run without confirmation
+    "always_allow_tool_actions": false,
+
+    // Completion mode: "normal" or "burn" (max performance)
+    "preferred_completion_mode": "normal",
     "default_width": 640,
     "button": true,
 

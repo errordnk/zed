@@ -123,53 +123,123 @@ Configure multiple AI providers:
 ```json
 {
   "language_models": {
-    "default_provider": "anthropic",
-    "providers": {
-      "anthropic": {
-        "api_key": "sk-ant-...",
-        "default_model": "claude-3-5-sonnet-20241022"
+    "anthropic": {
+      "api_url": "https://api.anthropic.com"
+    },
+    "openai": {
+      "api_url": "https://api.openai.com/v1"
+    },
+    "google": {
+      "api_url": "https://generativelanguage.googleapis.com"
+    },
+    "ollama": {
+      "api_url": "http://localhost:11434"
+    },
+    // Custom OpenAI-compatible providers
+    "openai_compatible": {
+      "opencode": {
+        "api_url": "https://api.opencode.com/v1",
+        "available_models": [
+          {
+            "name": "grok-code-fast1",
+            "display_name": "Grok Code Fast",
+            "max_tokens": 128000
+          }
+        ]
+      }
+    },
+    "zed.dev": {}  // Built-in: Claude, GPT, Gemini via Zed Pro
+  }
+}
+```
+
+**Built-in providers (via Zed Pro):**
+- `zed.dev` - Claude, GPT (Codex), Gemini, Grok via single subscription
+  - **No API keys needed** - auth via Zed account
+  - **Limits tracked by Zed** - uses your Zed Pro quota, not personal AI subscriptions
+  - Requests proxied through `zed.dev` servers
+
+**Direct API providers (uses your own subscriptions):**
+- `anthropic` - Claude (requires `ANTHROPIC_API_KEY` env var)
+  - **Your own limits** - uses your Anthropic subscription quota
+  - Requests go directly to `api.anthropic.com`
+- `openai` - GPT (requires `OPENAI_API_KEY` env var)
+- `google` - Gemini (requires `GOOGLE_API_KEY` env var)
+- `ollama` - Local models
+- `open_router` - Multiple models aggregator
+- `lmstudio` - Local LMStudio server
+- `mistral` - Mistral AI
+- `deepseek` - DeepSeek
+- `x_ai` - Grok/X.AI
+
+**Custom providers:**
+- `openai_compatible` - Add any OpenAI-compatible API
+
+### 5. Agent Settings
+
+AI agent configuration with profiles:
+
+```json
+{
+  "agent": {
+    "enabled": true,
+    "button": true,
+    "dock": "right",
+    "default_width": 640,
+    "default_model": {
+      "provider": "zed.dev",  // No API keys needed with Zed Pro
+      "model": "claude-sonnet-4"
+    },
+    "default_profile": "write",
+    "profiles": {
+      "write": {
+        "name": "Write",
+        "enable_all_context_servers": true,
+        "tools": {
+          "read_file": true,
+          "edit_file": true,
+          "terminal": true,
+          "web_search": true,
+          "grep": true,
+          "diagnostics": true
+        }
       },
-      "openai": {
-        "api_key": "sk-...",
-        "default_model": "gpt-4-turbo-preview"
+      "ask": {
+        "name": "Ask",
+        "tools": {
+          "read_file": true,
+          "web_search": true,
+          "grep": true
+        }
       },
-      "ollama": {
-        "api_url": "http://localhost:11434",
-        "default_model": "codellama:13b"
+      // Custom profile with different model
+      "code-review": {
+        "name": "Code Review",
+        "default_model": {
+          "provider": "opencode",  // Custom provider
+          "model": "grok-code-fast1"
+        },
+        "tools": {
+          "read_file": true,
+          "grep": true,
+          "diagnostics": true
+        }
       }
     }
   }
 }
 ```
 
-**Supported providers:**
-- Anthropic Claude
-- OpenAI GPT
-- Google Gemini
-- Ollama (local)
-- OpenRouter
-- LMStudio
-- Mistral
-
-### 5. Assistant Settings
-
-AI assistant configuration:
-
-```json
-{
-  "assistant": {
-    "enabled": true,
-    "default_model": {
-      "provider": "anthropic",
-      "model": "claude-3-5-sonnet-20241022"
-    },
-    "context": {
-      "max_tokens": 100000,
-      "include_open_files": true
-    }
-  }
-}
-```
+**Agent Profile Tools:**
+- `read_file` - Read files from project
+- `edit_file` - Edit/create files
+- `terminal` - Run terminal commands
+- `web_search` - Search the web
+- `grep` - Search in files
+- `diagnostics` - Access LSP diagnostics
+- `list_directory` - List directory contents
+- `fetch` - HTTP requests
+- `thinking` - Extended reasoning mode
 
 ## Complete Configuration Structure
 
