@@ -231,7 +231,7 @@
   //     "hollow"
   //
   // Default: "bar"
-  "cursor_shape": "bar",
+  "cursor_shape": "underline",
   // Determines when the mouse cursor should be hidden in response to keyboard
   // input.
   //
@@ -2707,5 +2707,13 @@
     "performance_profiler": {
       "enabled": false,
     },
+  },
+  "experimental.theme_overrides": {
+    "players": [
+      {
+        "cursor": "#90ee90",
+        "selection": "#88c0d080",
+      },
+    ],
   },
 }
