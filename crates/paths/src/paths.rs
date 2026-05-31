@@ -15,7 +15,7 @@ pub const EDITORCONFIG_NAME: &str = ".editorconfig";
 /// and state directory paths.
 ///
 /// Forks should change this to avoid colliding with Zed's user data.
-pub const APP_NAME: &str = "Zed";
+pub const APP_NAME: &str = "Sarnet";
 
 /// Lowercased form of [`APP_NAME`], for use in XDG-style paths on
 /// Linux/FreeBSD and the macOS `~/.config` fallback.
@@ -157,8 +157,8 @@ pub fn data_dir() -> &'static PathBuf {
             }
             .join(APP_NAME_LOWERCASE)
         } else if cfg!(target_os = "windows") {
-            dirs::data_local_dir()
-                .expect("failed to determine LocalAppData directory")
+            dirs::config_dir()
+                .expect("failed to determine RoamingAppData directory")
                 .join(APP_NAME)
         } else {
             config_dir().clone() // Fallback

@@ -1,12 +1,12 @@
 [package]
 description = "The fast, collaborative code editor."
 edition.workspace = true
-name = "zed"
+name = "sarnet"
 version = "1.6.0"
 publish.workspace = true
 license = "GPL-3.0-or-later"
 authors = ["Zed Team <hi@zed.dev>"]
-default-run = "zed"
+default-run = "sarnet"
 
 [lints]
 workspace = true
@@ -54,7 +54,7 @@ visual-tests = [
 ]
 
 [[bin]]
-name = "zed"
+name = "sarnet"
 path = "src/main.rs"
 
 [[bin]]
@@ -274,35 +274,35 @@ repl = { workspace = true, features = ["test-support"] }
 
 [package.metadata.bundle-dev]
 icon = ["resources/app-icon-dev@2x.png", "resources/app-icon-dev.png"]
-identifier = "dev.zed.Zed-Dev"
-name = "Zed Dev"
+identifier = "dev.sarnet.Sarnet-Dev"
+name = "Sarnet Dev"
 osx_minimum_system_version = "10.15.7"
 osx_info_plist_exts = ["resources/info/*"]
-osx_url_schemes = ["zed"]
+osx_url_schemes = ["sarnet"]
 
 [package.metadata.bundle-nightly]
 icon = ["resources/app-icon-nightly@2x.png", "resources/app-icon-nightly.png"]
-identifier = "dev.zed.Zed-Nightly"
-name = "Zed Nightly"
+identifier = "dev.sarnet.Sarnet-Nightly"
+name = "Sarnet Nightly"
 osx_minimum_system_version = "10.15.7"
 osx_info_plist_exts = ["resources/info/*"]
-osx_url_schemes = ["zed"]
+osx_url_schemes = ["sarnet"]
 
 [package.metadata.bundle-preview]
 icon = ["resources/app-icon-preview@2x.png", "resources/app-icon-preview.png"]
-identifier = "dev.zed.Zed-Preview"
-name = "Zed Preview"
+identifier = "dev.sarnet.Sarnet-Preview"
+name = "Sarnet Preview"
 osx_minimum_system_version = "10.15.7"
 osx_info_plist_exts = ["resources/info/*"]
-osx_url_schemes = ["zed"]
+osx_url_schemes = ["sarnet"]
 
 [package.metadata.bundle-stable]
 icon = ["resources/app-icon@2x.png", "resources/app-icon.png"]
-identifier = "dev.zed.Zed"
-name = "Zed"
+identifier = "dev.sarnet.Sarnet"
+name = "Sarnet"
 osx_minimum_system_version = "10.15.7"
 osx_info_plist_exts = ["resources/info/*"]
-osx_url_schemes = ["zed"]
+osx_url_schemes = ["sarnet"]
 
 [package.metadata.cargo-machete]
 ignored = ["profiling", "zstd", "tracing"]
