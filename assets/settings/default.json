@@ -1804,7 +1804,7 @@
     //         "blinking": "terminal_controlled",
     //  3. Always blink the cursor, ignoring the terminal mode
     //         "blinking": "on",
-    "blinking": "terminal_controlled",
+    "blinking": "on",
     // Default cursor shape for the terminal.
     //  1. A block that surrounds the following character
     //     "block"
@@ -1816,7 +1816,7 @@
     //     "hollow"
     //
     // Default: "block"
-    "cursor_shape": "block",
+    "cursor_shape": "underline",
     // Set whether Alternate Scroll mode (code: ?1007) is active by default.
     // Alternate Scroll mode converts mouse scroll events into up / down key
     // presses when in the alternate screen (e.g. when running applications
@@ -1837,7 +1837,7 @@
     "option_as_meta": false,
     // Whether or not selecting text in the terminal will automatically
     // copy to the system clipboard.
-    "copy_on_select": false,
+    "copy_on_select": true,
     // Whether to keep the text selection after copying it to the clipboard.
     "keep_selection_on_copy": true,
     // Whether to show the terminal button in the status bar
@@ -1903,14 +1903,14 @@
     },
     // Set the terminal's font size. If this option is not included,
     // the terminal will default to matching the buffer's font size.
-    // "font_size": 15,
+    "font_size": 14,
     // Set the terminal's font family. If this option is not included,
     // the terminal will default to matching the buffer's font family.
-    // "font_family": ".ZedMono",
-    // Set the terminal's font fallbacks. If this option is not included,
-    // the terminal will default to matching the buffer's font fallbacks.
-    // This will be merged with the platform's default font fallbacks
-    // "font_fallbacks": ["FiraCode Nerd Fonts"],
+    "font_family": "FiraCode Nerd Font",
+    // Set the terminal's font features.
+    "font_features": {
+      "calt": true,
+    },
     // The weight of the editor font in standard CSS units from 100 to 900.
     "font_weight": 400,
     // Sets the maximum number of lines in the terminal's scrollback buffer.
