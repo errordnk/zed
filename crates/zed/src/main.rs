@@ -199,6 +199,41 @@ fn fail_to_open_window(e: anyhow::Error, _cx: &mut App) {
 }
 static STARTUP_TIME: OnceLock<Instant> = OnceLock::new();
 
+fn open_terminal_in_workspace(
+    workspace: &mut workspace::Workspace,
+    window: &mut gpui::Window,
+    cx: &mut gpui::Context<workspace::Workspace>,
+) {
+    let project = workspace.project().clone();
+    let terminal_task = project.update(cx, |project, cx| project.create_local_terminal(cx));
+    let workspace_handle = workspace.weak_handle();
+    let workspace_id = workspace.database_id();
+    let project_weak = project.downgrade();
+    cx.spawn_in(window, async move |workspace, cx| {
+        let terminal = terminal_task.await?;
+        workspace.update_in(cx, |workspace, window, cx| {
+            let terminal_view = cx.new(|cx| {
+                terminal_view::TerminalView::new(
+                    terminal,
+                    workspace_handle,
+                    workspace_id,
+                    project_weak,
+                    window,
+                    cx,
+                )
+            });
+            workspace.add_item_to_active_pane(
+                Box::new(terminal_view),
+                None,
+                true,
+                window,
+                cx,
+            );
+        })
+    })
+    .detach_and_log_err(cx);
+}
+
 fn main() {
     STARTUP_TIME.get_or_init(|| Instant::now());
 
@@ -1616,14 +1651,7 @@ pub(crate) async fn restore_or_create_workspace(
                     app_state.clone(),
                     cx,
                     |workspace, window, cx| {
-                        let restore_on_startup =
-                            WorkspaceSettings::get_global(cx).restore_on_startup;
-                        match restore_on_startup {
-                            workspace::RestoreOnStartupBehavior::Launchpad => {}
-                            _ => {
-                                Editor::new_file(workspace, &Default::default(), window, cx);
-                            }
-                        }
+                        open_terminal_in_workspace(workspace, window, cx);
                     },
                 )
             })
@@ -1638,13 +1666,7 @@ pub(crate) async fn restore_or_create_workspace(
                 app_state,
                 cx,
                 |workspace, window, cx| {
-                    let restore_on_startup = WorkspaceSettings::get_global(cx).restore_on_startup;
-                    match restore_on_startup {
-                        workspace::RestoreOnStartupBehavior::Launchpad => {}
-                        _ => {
-                            Editor::new_file(workspace, &Default::default(), window, cx);
-                        }
-                    }
+                    open_terminal_in_workspace(workspace, window, cx);
                 },
             )
         })

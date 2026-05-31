@@ -9,10 +9,10 @@ use editor::{
     ui_scrollbar_settings_from_raw,
 };
 use gpui::{
-    Action, AnyElement, App, ClipboardEntry, DismissEvent, Entity, EventEmitter, ExternalPaths,
+    Action, AnyElement, App, ClipboardEntry, Entity, EventEmitter, ExternalPaths,
     FocusHandle, Focusable, Font, KeyContext, KeyDownEvent, Keystroke, MouseButton, MouseDownEvent,
-    Pixels, Point, Render, ScrollWheelEvent, Styled, Subscription, Task, TaskExt, WeakEntity,
-    actions, anchored, deferred, div,
+    Pixels, Render, ScrollWheelEvent, Styled, Subscription, Task, TaskExt, WeakEntity,
+    actions, div,
 };
 use itertools::Itertools;
 use menu;
@@ -48,13 +48,13 @@ use terminal_panel::TerminalPanel;
 use terminal_path_like_target::{hover_path_like_target, open_path_like_target};
 use terminal_scrollbar::TerminalScrollHandle;
 use ui::{
-    ContextMenu, Divider, ScrollAxes, Scrollbars, Tooltip, WithScrollbar,
+    Divider, ScrollAxes, Scrollbars, Tooltip, WithScrollbar,
     prelude::*,
     scrollbars::{self, ScrollbarVisibility},
 };
 use util::ResultExt;
 use workspace::{
-    CloseActiveItem, DraggedSelection, DraggedTab, NewCenterTerminal, NewTerminal, Pane,
+    DraggedSelection, DraggedTab, NewCenterTerminal, Pane,
     ToolbarItemLocation, Workspace, WorkspaceId, delete_unloaded_items,
     item::{
         HighlightedText, Item, ItemEvent, SerializableItem, TabContentParams, TabTooltipContent,
@@ -64,7 +64,6 @@ use workspace::{
         Direction, SearchEvent, SearchOptions, SearchToken, SearchableItem, SearchableItemHandle,
     },
 };
-use zed_actions::{agent::AddSelectionToThread, assistant::InlineAssist};
 
 struct ImeState {
     marked_text: String,
@@ -129,7 +128,7 @@ pub struct TerminalView {
     focus_handle: FocusHandle,
     //Currently using iTerm bell, show bell emoji in tab until input is received
     has_bell: bool,
-    context_menu: Option<(Entity<ContextMenu>, Point<Pixels>, Subscription)>,
+
     cursor_shape: CursorShape,
     blink_manager: Entity<BlinkManager>,
     mode: TerminalMode,
@@ -275,7 +274,7 @@ impl TerminalView {
             project,
             has_bell: false,
             focus_handle,
-            context_menu: None,
+
             cursor_shape,
             blink_manager,
             blinking_terminal_enabled: false,
@@ -486,69 +485,6 @@ impl TerminalView {
     pub fn clear_bell(&mut self, cx: &mut Context<TerminalView>) {
         self.has_bell = false;
         cx.emit(Event::Wakeup);
-    }
-
-    pub fn deploy_context_menu(
-        &mut self,
-        position: Point<Pixels>,
-        has_selection: bool,
-        window: &mut Window,
-        cx: &mut Context<Self>,
-    ) {
-        let assistant_enabled = self
-            .workspace
-            .upgrade()
-            .and_then(|workspace| workspace.read(cx).panel::<TerminalPanel>(cx))
-            .is_some_and(|terminal_panel| terminal_panel.read(cx).assistant_enabled());
-        let context_menu = ContextMenu::build(window, cx, |menu, _, _| {
-            menu.context(self.focus_handle.clone())
-                .action("New Terminal", Box::new(NewTerminal::default()))
-                .action(
-                    "New Center Terminal",
-                    Box::new(NewCenterTerminal::default()),
-                )
-                .separator()
-                .action("Copy", Box::new(Copy))
-                .action("Paste", Box::new(Paste))
-                .action("Paste Text", Box::new(PasteText))
-                .action("Select All", Box::new(SelectAll))
-                .action("Clear", Box::new(Clear))
-                .when(
-                    assistant_enabled && !matches!(self.mode, TerminalMode::Embedded { .. }),
-                    |menu| {
-                        menu.separator()
-                            .action("Inline Assist", Box::new(InlineAssist::default()))
-                            .when(has_selection, |menu| {
-                                menu.action("Add to Agent Thread", Box::new(AddSelectionToThread))
-                            })
-                    },
-                )
-                .separator()
-                .action(
-                    "Close Terminal Tab",
-                    Box::new(CloseActiveItem {
-                        save_intent: None,
-                        close_pinned: true,
-                    }),
-                )
-        });
-
-        window.focus(&context_menu.focus_handle(cx), cx);
-        let subscription = cx.subscribe_in(
-            &context_menu,
-            window,
-            |this, _, _: &DismissEvent, window, cx| {
-                if this.context_menu.as_ref().is_some_and(|context_menu| {
-                    context_menu.0.focus_handle(cx).contains_focused(window, cx)
-                }) {
-                    cx.focus_self(window);
-                }
-                this.context_menu.take();
-                cx.notify();
-            },
-        );
-
-        self.context_menu = Some((context_menu, position, subscription));
     }
 
     fn settings_changed(&mut self, cx: &mut Context<Self>) {
@@ -1301,23 +1237,13 @@ impl Render for TerminalView {
             .on_key_down(cx.listener(Self::key_down))
             .on_mouse_down(
                 MouseButton::Right,
-                cx.listener(|this, event: &MouseDownEvent, window, cx| {
+                cx.listener(|this, event: &MouseDownEvent, _window, cx| {
                     if !this.terminal.read(cx).mouse_mode(event.modifiers.shift) {
-                        let had_selection = this.terminal.read(cx).last_content.selection.is_some();
-                        if !had_selection {
+                        if let Some(text) = cx.read_from_clipboard().and_then(|item| item.text()) {
                             this.terminal.update(cx, |terminal, _| {
-                                terminal.select_word_at_event_position(event);
+                                terminal.paste(&text);
                             });
                         }
-                        let has_selection = !had_selection
-                            || this
-                                .terminal
-                                .read(cx)
-                                .last_content
-                                .selection_text
-                                .as_ref()
-                                .is_some_and(|text| !text.is_empty());
-                        this.deploy_context_menu(event.position, has_selection, window, cx);
                         cx.notify();
                     }
                 }),
@@ -1353,15 +1279,6 @@ impl Render for TerminalView {
                         )
                     }),
             )
-            .children(self.context_menu.as_ref().map(|(menu, position, _)| {
-                deferred(
-                    anchored()
-                        .position(*position)
-                        .anchor(gpui::Anchor::TopLeft)
-                        .child(menu.clone()),
-                )
-                .with_priority(1)
-            }))
     }
 }
 

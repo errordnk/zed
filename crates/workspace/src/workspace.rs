@@ -1650,13 +1650,14 @@ impl Workspace {
                 project.clone(),
                 pane_history_timestamp.clone(),
                 None,
-                NewFile.boxed_clone(),
+                NewCenterTerminal::default().boxed_clone(),
                 true,
                 window,
                 cx,
             );
             center_pane.set_can_split(Some(Arc::new(|_, _, _, _| true)));
             center_pane.set_should_display_welcome_page(true);
+            center_pane.display_nav_history_buttons(Some(false));
             center_pane
         });
         cx.subscribe_in(&center_pane, window, Self::handle_pane_event)
@@ -4469,7 +4470,7 @@ impl Workspace {
                 self.project.clone(),
                 self.pane_history_timestamp.clone(),
                 None,
-                NewFile.boxed_clone(),
+                NewCenterTerminal::default().boxed_clone(),
                 true,
                 window,
                 cx,
@@ -7364,32 +7365,12 @@ impl Workspace {
             .on_action(cx.listener(|workspace, _: &MovePaneDown, _, cx| {
                 workspace.move_pane_to_border(SplitDirection::Down, cx)
             }))
-            .on_action(cx.listener(|this, _: &ToggleLeftDock, window, cx| {
-                this.toggle_dock(DockPosition::Left, window, cx);
-            }))
-            .on_action(cx.listener(
-                |workspace: &mut Workspace, _: &ToggleRightDock, window, cx| {
-                    workspace.toggle_dock(DockPosition::Right, window, cx);
-                },
-            ))
-            .on_action(cx.listener(
-                |workspace: &mut Workspace, _: &ToggleBottomDock, window, cx| {
-                    workspace.toggle_dock(DockPosition::Bottom, window, cx);
-                },
-            ))
-            .on_action(cx.listener(
-                |workspace: &mut Workspace, _: &CloseActiveDock, window, cx| {
-                    if !workspace.close_active_dock(window, cx) {
-                        cx.propagate();
-                    }
-                },
-            ))
-            .on_action(
-                cx.listener(|workspace: &mut Workspace, _: &CloseAllDocks, window, cx| {
-                    workspace.close_all_docks(window, cx);
-                }),
-            )
-            .on_action(cx.listener(Self::toggle_all_docks))
+            .on_action(cx.listener(|_this, _: &ToggleLeftDock, _window, _cx| {}))
+            .on_action(cx.listener(|_: &mut Workspace, _: &ToggleRightDock, _, _| {}))
+            .on_action(cx.listener(|_: &mut Workspace, _: &ToggleBottomDock, _, _| {}))
+            .on_action(cx.listener(|_: &mut Workspace, _: &CloseActiveDock, _, _| {}))
+            .on_action(cx.listener(|_: &mut Workspace, _: &CloseAllDocks, _, _| {}))
+            .on_action(cx.listener(|_: &mut Workspace, _: &ToggleAllDocks, _, _| {}))
             .on_action(cx.listener(
                 |workspace: &mut Workspace, _: &ClearAllNotifications, _, cx| {
                     workspace.clear_all_notifications(cx);
@@ -7767,6 +7748,19 @@ impl Workspace {
     }
 
     fn render_dock(
+        &self,
+        position: DockPosition,
+        dock: &Entity<Dock>,
+        window: &mut Window,
+        cx: &mut App,
+    ) -> Option<Div> {
+        // Hide all docks — terminal lives in the center pane
+        let _ = (position, dock, window, cx);
+        return None;
+        self.render_dock_orig(position, dock, window, cx)
+    }
+
+    fn render_dock_orig(
         &self,
         position: DockPosition,
         dock: &Entity<Dock>,
@@ -8844,9 +8838,6 @@ impl Render for Workspace {
                             }))
                             .children(self.render_notifications(window, cx)),
                     )
-                    .when(self.status_bar_visible(cx), |parent| {
-                        parent.child(self.status_bar.clone())
-                    })
                     .child(self.toast_layer.clone()),
             )
     }
