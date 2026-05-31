@@ -987,6 +987,13 @@ debug = "full"
 lto = false
 codegen-units = 16
 
+# Low-memory release build: no LTO, more codegen units — use when LLVM runs out of memory
+[profile.release-local]
+inherits = "release"
+debug = false
+lto = false
+codegen-units = 16
+
 [workspace.lints.rust]
 unexpected_cfgs = { level = "allow" }
 
