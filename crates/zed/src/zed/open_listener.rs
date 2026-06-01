@@ -1,11 +1,9 @@
 use crate::handle_open_request;
 use crate::restore_or_create_workspace;
-use agent_ui::ExternalSourcePrompt;
 use anyhow::{Context as _, Result, anyhow};
 use cli::{CliRequest, CliResponse, CliResponseSink};
 use cli::{IpcHandshake, ipc};
 use client::{ZedLink, parse_zed_link};
-use db::kvp::KeyValueStore;
 use editor::Editor;
 use fs::Fs;
 use futures::channel::mpsc::{UnboundedReceiver, UnboundedSender};
@@ -13,10 +11,7 @@ use futures::channel::{mpsc, oneshot};
 use futures::future;
 
 use futures::{FutureExt, StreamExt};
-use git_ui::{file_diff_view::FileDiffView, multi_diff_view::MultiDiffView};
 use gpui::{App, AsyncApp, Global, TaskExt, WindowHandle};
-use onboarding::FIRST_OPEN;
-use onboarding::show_onboarding_view;
 use recent_projects::{RemoteSettings, navigate_to_positions, open_remote_project};
 use remote::{RemoteConnectionOptions, WslConnectionOptions};
 use settings::Settings;
@@ -57,7 +52,7 @@ pub enum OpenRequestKind {
         extension_id: String,
     },
     AgentPanel {
-        external_source_prompt: Option<ExternalSourcePrompt>,
+        external_source_prompt: Option<String>,
     },
     SharedAgentThread {
         session_id: String,
@@ -186,8 +181,6 @@ impl OpenRequest {
                 } else {
                     log::error!("Invalid session ID in URL: {}", session_id_str);
                 }
-            } else if url.starts_with(agent_skills::SKILL_SHARE_LINK_PREFIX) {
-                this.parse_skill_install_url(&url)?
             } else if let Some(agent_path) = url.strip_prefix("zed://agent") {
                 this.parse_agent_url(agent_path)
             } else if url == "zed://" || url == "zed://open" || url == "zed://open/" {
@@ -239,19 +232,11 @@ impl OpenRequest {
         let agent_path = agent_path.strip_prefix('/').unwrap_or(agent_path);
         let external_source_prompt = agent_path.strip_prefix('?').and_then(|query| {
             url::form_urlencoded::parse(query.as_bytes())
-                .find_map(|(key, value)| (key == "prompt").then_some(value))
-                .and_then(|prompt| ExternalSourcePrompt::new(prompt.as_ref()))
+                .find_map(|(key, value)| (key == "prompt").then_some(value.into_owned()))
         });
         self.kind = Some(OpenRequestKind::AgentPanel {
             external_source_prompt,
         });
-    }
-
-    fn parse_skill_install_url(&mut self, url: &str) -> Result<()> {
-        // Format: zed://skill?data=<base64url of SKILL.md contents>
-        let content = agent_skills::decode_skill_share_link(url)?;
-        self.kind = Some(OpenRequestKind::InstallSkill { content });
-        Ok(())
     }
 
     fn parse_git_clone_url(&mut self, clone_path: &str) -> Result<()> {
@@ -500,49 +485,7 @@ pub async fn open_paths_with_positions(
         .update(|cx| workspace::open_paths(&paths, app_state.clone(), open_options, cx))
         .await?;
 
-    if diff_all && !diff_paths.is_empty() {
-        if let Ok(diff_view) = multi_workspace.update(cx, |multi_workspace, window, cx| {
-            multi_workspace.workspace().update(cx, |workspace, cx| {
-                MultiDiffView::open(diff_paths.to_vec(), workspace, window, cx)
-            })
-        }) {
-            if let Some(diff_view) = diff_view.await.log_err() {
-                items.push(Some(Ok(Box::new(diff_view))));
-            }
-        }
-    } else {
-        let workspace_weak = multi_workspace.read_with(cx, |multi_workspace, _cx| {
-            multi_workspace.workspace().downgrade()
-        })?;
-        let canonicalize = async |raw: &str| {
-            app_state
-                .fs
-                .canonicalize(Path::new(raw))
-                .await
-                .with_context(|| format!("opening --diff path {raw:?}"))
-        };
-        for diff_pair in diff_paths {
-            let (old_path, new_path) =
-                match futures::join!(canonicalize(&diff_pair[0]), canonicalize(&diff_pair[1])) {
-                    (Ok(old), Ok(new)) => (old, new),
-                    (old, new) => {
-                        for result in [old, new] {
-                            if let Err(err) = result {
-                                items.push(Some(Err(err)));
-                            }
-                        }
-                        continue;
-                    }
-                };
-            if let Ok(diff_view) = multi_workspace.update(cx, |_multi_workspace, window, cx| {
-                FileDiffView::open(old_path, new_path, workspace_weak.clone(), window, cx)
-            }) {
-                if let Some(diff_view) = diff_view.await.log_err() {
-                    items.push(Some(Ok(Box::new(diff_view))))
-                }
-            }
-        }
-    }
+    // diff views not supported in Sarnet
 
     for (item, path) in items.iter_mut().zip(&paths) {
         if let Some(Err(error)) = item {
@@ -830,24 +773,16 @@ async fn open_workspaces(
         };
 
     if grouped_locations.is_empty() {
-        // If we have no paths to open, show the welcome screen if this is the first launch
-        let kvp = cx.update(|cx| KeyValueStore::global(cx));
-        if matches!(kvp.read_kvp(FIRST_OPEN), Ok(None)) {
-            cx.update(|cx| show_onboarding_view(app_state, cx).detach());
-        }
-        // If not the first launch, show an empty window with empty editor
-        else {
-            cx.update(|cx| {
-                let open_options = OpenOptions {
-                    env,
-                    ..Default::default()
-                };
-                workspace::open_new(open_options, app_state, cx, |workspace, window, cx| {
-                    Editor::new_file(workspace, &Default::default(), window, cx)
-                })
-                .detach_and_log_err(cx);
-            });
-        }
+        cx.update(|cx| {
+            let open_options = OpenOptions {
+                env,
+                ..Default::default()
+            };
+            workspace::open_new(open_options, app_state, cx, |workspace, window, cx| {
+                Editor::new_file(workspace, &Default::default(), window, cx)
+            })
+            .detach_and_log_err(cx);
+        });
         return Ok(());
     }
     // If there are paths to open, open a workspace for each grouping of paths

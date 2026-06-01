@@ -9,7 +9,6 @@ use crate::application_menu::{ApplicationMenu, show_menus};
 use crate::plan_chip::PlanChip;
 use agent_settings::{AgentSettings, WindowLayout};
 use arrayvec::ArrayVec;
-use git_ui::worktree_picker::WorktreePicker;
 pub use platform_title_bar::{
     self, DraggedWindowTab, MergeAllWindows, MoveTabToNewWindow, PlatformTitleBar,
     ShowNextWindowTab, ShowPreviousWindowTab,
@@ -22,7 +21,6 @@ use crate::application_menu::{
 };
 
 use auto_update::AutoUpdateStatus;
-use call::ActiveCall;
 use client::{Client, UserStore, zed_urls};
 use cloud_api_types::Plan;
 
@@ -34,7 +32,7 @@ use gpui::{
 };
 use onboarding_banner::OnboardingBanner;
 use project::{
-    Project, git_store::GitStoreEvent, project_settings::ProjectSettings,
+    Project, project_settings::ProjectSettings,
     trusted_worktrees::TrustedWorktrees,
 };
 use remote::RemoteConnectionOptions;
@@ -270,66 +268,12 @@ impl Render for TitleBar {
                 .into_any_element(),
         );
 
-        children.push(self.render_collaborator_list(window, cx).into_any_element());
-
-        if title_bar_settings.show_onboarding_banner {
-            if let Some(banner) = &self.banner {
-                children.push(banner.clone().into_any_element())
-            }
-        }
-
-        let status = self.client.status();
-        let status = &*status.borrow();
-        let user = self.user_store.read(cx).current_user();
-
-        let signed_in = user.is_some();
-        let is_signing_in = user.is_none()
-            && matches!(
-                status,
-                client::Status::Authenticating
-                    | client::Status::Authenticated
-                    | client::Status::Connecting
-            );
-        let is_signed_out_or_auth_error = user.is_none()
-            && matches!(
-                status,
-                client::Status::SignedOut | client::Status::AuthenticationError
-            );
-
         children.push(
             h_flex()
-                .map(|this| {
-                    if signed_in {
-                        this.pr_1p5()
-                    } else {
-                        this.pr_1()
-                    }
-                })
+                .pr_1()
                 .gap_1()
                 .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
-                .children(self.render_call_controls(window, cx))
-                .children(self.render_connection_status(status, cx))
                 .child(self.update_version.clone())
-                .when(
-                    user.is_none()
-                        && is_signed_out_or_auth_error
-                        && TitleBarSettings::get_global(cx).show_sign_in,
-                    |this| this.child(self.render_sign_in_button(cx)),
-                )
-                .when(is_signing_in, |this| {
-                    this.child(
-                        Label::new("Signing in…")
-                            .size(LabelSize::Small)
-                            .color(Color::Muted)
-                            .with_animation(
-                                "signing-in",
-                                Animation::new(Duration::from_secs(2))
-                                    .repeat()
-                                    .with_easing(pulsating_between(0.4, 0.8)),
-                                |label, delta| label.alpha(delta),
-                            ),
-                    )
-                })
                 .into_any_element(),
         );
 
@@ -380,11 +324,8 @@ impl TitleBar {
         cx: &mut Context<Self>,
     ) -> Self {
         let project = workspace.project().clone();
-        let git_store = project.read(cx).git_store().clone();
         let user_store = workspace.app_state().user_store.clone();
         let client = workspace.app_state().client.clone();
-        let active_call = ActiveCall::global(cx);
-
         let platform_style = PlatformStyle::platform();
         let application_menu = match platform_style {
             PlatformStyle::Mac => {
@@ -406,17 +347,7 @@ impl TitleBar {
             }),
         );
 
-        subscriptions.push(cx.observe(&active_call, |this, _, cx| this.active_call_changed(cx)));
         subscriptions.push(cx.observe_window_activation(window, Self::window_activation_changed));
-        subscriptions.push(
-            cx.subscribe(&git_store, move |_, _, event, cx| match event {
-                GitStoreEvent::ActiveRepositoryChanged(_)
-                | GitStoreEvent::RepositoryUpdated(_, _, true) => {
-                    cx.notify();
-                }
-                _ => {}
-            }),
-        );
         subscriptions.push(cx.observe(&user_store, |_a, _, cx| cx.notify()));
         if let Some(workspace_entity) = workspace.weak_handle().upgrade() {
             subscriptions.push(cx.subscribe(
@@ -570,13 +501,7 @@ impl TitleBar {
                 .menu(move |window, cx| {
                     let workspace_entity = workspace.upgrade()?;
                     let fs = workspace_entity.read(cx).project().read(cx).fs().clone();
-                    Some(recent_projects::RemoteServerProjects::popover(
-                        fs,
-                        workspace.clone(),
-                        false,
-                        window,
-                        cx,
-                    ))
+                    None::<gpui::Entity<ui::ContextMenu>>
                 })
                 .trigger_with_tooltip(
                     ButtonLike::new("remote_project")
@@ -755,15 +680,8 @@ impl TitleBar {
             .unwrap_or_default();
 
         PopoverMenu::new("recent-projects-menu")
-            .menu(move |window, cx| {
-                Some(recent_projects::RecentProjects::popover(
-                    workspace.clone(),
-                    window_project_groups.clone(),
-                    false,
-                    focus_handle.clone(),
-                    window,
-                    cx,
-                ))
+            .menu(move |_window, _cx| {
+                None::<gpui::Entity<ui::ContextMenu>>
             })
             .trigger_with_tooltip(
                 Button::new("project_name_trigger", display_name)
@@ -812,15 +730,8 @@ impl TitleBar {
             .unwrap_or_default();
 
         PopoverMenu::new("sidebar-title-recent-projects-menu")
-            .menu(move |window, cx| {
-                Some(recent_projects::RecentProjects::popover(
-                    workspace.clone(),
-                    window_project_groups.clone(),
-                    false,
-                    focus_handle.clone(),
-                    window,
-                    cx,
-                ))
+            .menu(move |_window, _cx| {
+                None::<gpui::Entity<ui::ContextMenu>>
             })
             .trigger_with_tooltip(
                 Button::new("project_name_trigger", display_name)
@@ -918,16 +829,9 @@ impl TitleBar {
         };
 
         let worktree_button = {
-            let project = self.project.clone();
-            let workspace_handle = workspace.downgrade();
             PopoverMenu::new("worktree-picker-menu")
-                .menu(move |window, cx| {
-                    // When opened from the title bar, focus is on the trigger
-                    // button (not a dock), so `focused_dock` is `None`. That's
-                    // fine — there's no prior dock focus to restore.
-                    Some(cx.new(|cx| {
-                        WorktreePicker::new(project.clone(), workspace_handle.clone(), window, cx)
-                    }))
+                .menu(move |_window, _cx| {
+                    None::<gpui::Entity<ui::ContextMenu>>
                 })
                 .trigger_with_tooltip(
                     Button::new("worktree_picker_trigger", display_label)
@@ -983,15 +887,8 @@ impl TitleBar {
                 };
 
                 PopoverMenu::new("branch-menu")
-                    .menu(move |window, cx| {
-                        Some(git_ui::git_picker::popover(
-                            workspace.downgrade(),
-                            effective_repository.clone(),
-                            git_ui::git_picker::GitPickerTab::Branches,
-                            gpui::rems(34.),
-                            window,
-                            cx,
-                        ))
+                    .menu(move |_window, _cx| {
+                        None::<gpui::Entity<ui::ContextMenu>>
                     })
                     .trigger_with_tooltip(trigger, move |_window, cx| {
                         let meta = if is_detached_head {
@@ -1028,15 +925,6 @@ impl TitleBar {
     }
 
     fn window_activation_changed(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        if window.is_window_active() {
-            ActiveCall::global(cx)
-                .update(cx, |call, cx| call.set_location(Some(&self.project), cx))
-                .detach_and_log_err(cx);
-        } else if cx.active_window().is_none() {
-            ActiveCall::global(cx)
-                .update(cx, |call, cx| call.set_location(None, cx))
-                .detach_and_log_err(cx);
-        }
         self.workspace
             .update(cx, |workspace, cx| {
                 workspace.update_active_view_for_followers(window, cx);
@@ -1044,39 +932,11 @@ impl TitleBar {
             .ok();
     }
 
-    fn active_call_changed(&mut self, cx: &mut Context<Self>) {
-        self.observe_diagnostics(cx);
-        cx.notify();
-    }
+    fn observe_diagnostics(&mut self, _cx: &mut Context<Self>) {}
 
-    fn observe_diagnostics(&mut self, cx: &mut Context<Self>) {
-        let diagnostics = ActiveCall::global(cx)
-            .read(cx)
-            .room()
-            .and_then(|room| room.read(cx).diagnostics().cloned());
+    fn share_project(&mut self, _cx: &mut Context<Self>) {}
 
-        if let Some(diagnostics) = diagnostics {
-            self._diagnostics_subscription = Some(cx.observe(&diagnostics, |_, _, cx| cx.notify()));
-        } else {
-            self._diagnostics_subscription = None;
-        }
-    }
-
-    fn share_project(&mut self, cx: &mut Context<Self>) {
-        let active_call = ActiveCall::global(cx);
-        let project = self.project.clone();
-        active_call
-            .update(cx, |call, cx| call.share_project(project, cx))
-            .detach_and_log_err(cx);
-    }
-
-    fn unshare_project(&mut self, _: &mut Window, cx: &mut Context<Self>) {
-        let active_call = ActiveCall::global(cx);
-        let project = self.project.clone();
-        active_call
-            .update(cx, |call, cx| call.unshare_project(project, cx))
-            .log_err();
-    }
+    fn unshare_project(&mut self, _: &mut Window, _cx: &mut Context<Self>) {}
 
     fn render_connection_status(
         &self,

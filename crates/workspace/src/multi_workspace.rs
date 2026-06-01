@@ -398,8 +398,8 @@ impl MultiWorkspace {
             .map_or(false, |s| s.is_threads_list_view_active(cx))
     }
 
-    pub fn multi_workspace_enabled(&self, cx: &App) -> bool {
-        !DisableAiSettings::get_global(cx).disable_ai && AgentSettings::get_global(cx).enabled
+    pub fn multi_workspace_enabled(&self, _cx: &App) -> bool {
+        false
     }
 
     pub fn toggle_sidebar(&mut self, window: &mut Window, cx: &mut Context<Self>) {
