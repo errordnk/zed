@@ -31,7 +31,6 @@ members = [
     "crates/gpui_windows",
     "crates/http_client",
     "crates/http_client_tls",
-    "crates/icons",
     "crates/install_cli",
     "crates/json_schema_store",
     "crates/keymap_editor",
