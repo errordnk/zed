@@ -74,8 +74,6 @@ members = [
     "crates/system_specs",
     "crates/syntax_theme",
     "crates/tab_switcher",
-    "crates/task",
-    "crates/tasks_ui",
     "crates/terminal",
     "crates/terminal_view",
     "crates/text",

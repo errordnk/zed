@@ -520,7 +520,6 @@ fn main() {
         go_to_line::init(cx);
         tab_switcher::init(cx);
         outline::init(cx);
-        tasks_ui::init(cx);
         search::init(cx);
         cx.set_global(workspace::PaneSearchBarCallbacks {
             setup_search_bar: |languages, toolbar, window, cx| {
