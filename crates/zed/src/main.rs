@@ -216,6 +216,15 @@ fn open_terminal_in_workspace(
 fn main() {
     STARTUP_TIME.get_or_init(|| Instant::now());
 
+    #[cfg(target_os = "windows")]
+    unsafe {
+        use windows::Win32::UI::Shell::SetCurrentProcessExplicitAppUserModelID;
+        use windows::core::HSTRING;
+        let _ = SetCurrentProcessExplicitAppUserModelID(&HSTRING::from(
+            release_channel::RELEASE_CHANNEL.app_id(),
+        ));
+    }
+
     #[cfg(unix)]
     util::prevent_root_execution();
 
