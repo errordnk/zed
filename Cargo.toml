@@ -50,8 +50,6 @@ members = [
     "crates/project_panel",
     "crates/proto",
     "crates/recent_projects",
-    "crates/refineable",
-    "crates/refineable/derive_refineable",
     "crates/release_channel",
     "crates/remote",
     "crates/reqwest_client",
