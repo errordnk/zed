@@ -1,7 +1,6 @@
 // Disable command line from opening on release mode
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-mod reliability;
 mod zed;
 
 // Ensure the binary name stays in sync with APP_NAME so that the paths used
@@ -19,7 +18,6 @@ use clap::Parser;
 use cli::FORCE_CLI_MODE_ENV_VAR_NAME;
 use client::{Client, ProxySettings, UserStore, parse_zed_link};
 use collections::HashMap;
-use crashes::InitCrashHandler;
 use db::kvp::{GlobalKeyValueStore, KeyValueStore};
 use fs::{Fs, RealFs};
 use futures::{StreamExt, channel::oneshot};
@@ -37,8 +35,7 @@ use parking_lot::Mutex;
 use project::{project_settings::ProjectSettings, trusted_worktrees};
 use release_channel::{AppCommitSha, AppVersion, ReleaseChannel};
 use session::{AppSession, Session};
-use settings::{BaseKeymap, Settings, SettingsStore, watch_config_file};
-use smol::future::poll_once;
+use settings::{Settings, SettingsStore, watch_config_file};
 use std::{
     env,
     io::{self, IsTerminal},
@@ -61,7 +58,7 @@ use zed::{
     handle_keymap_file_changes, initialize_workspace, open_paths_with_positions,
 };
 
-use crate::zed::{CrashHandler, OpenRequestKind, eager_load_active_theme_and_icon_theme};
+use crate::zed::{OpenRequestKind, eager_load_active_theme_and_icon_theme};
 
 #[cfg(feature = "mimalloc")]
 #[global_allocator]
@@ -231,12 +228,6 @@ fn main() {
         return;
     }
 
-    // `zed --crash-handler` Makes zed operate in minidump crash handler mode
-    if let Some(socket) = &args.crash_handler {
-        crashes::crash_server(socket.as_path(), paths::logs_dir().clone());
-        return;
-    }
-
     #[cfg(target_os = "windows")]
     if args.record_etw_trace {
         let zed_pid = args
@@ -395,45 +386,7 @@ fn main() {
         return;
     }
 
-    let should_install_crash_handler = matches!(
-        env::var("ZED_GENERATE_MINIDUMPS").as_deref(),
-        Ok("true" | "1")
-    ) || *release_channel::RELEASE_CHANNEL
-        != ReleaseChannel::Dev;
-
-    let crash_handler = if should_install_crash_handler {
-        Some(
-            app.background_executor().spawn(crashes::init(
-                InitCrashHandler {
-                    session_id,
-                    // strip the build and channel information from the version string, we send them separately
-                    zed_version: semver::Version::new(
-                        app_version.major,
-                        app_version.minor,
-                        app_version.patch,
-                    )
-                    .to_string(),
-                    binary: "zed".to_string(),
-                    release_channel: release_channel::RELEASE_CHANNEL_NAME.clone(),
-                    commit_sha: app_commit_sha
-                        .as_ref()
-                        .map(|sha| sha.full())
-                        .unwrap_or_else(|| "no sha".to_owned()),
-                },
-                {
-                    let background_executor1 = app.background_executor();
-                    move |task| {
-                        background_executor1.spawn(task).detach();
-                    }
-                },
-                |pid| paths::temp_dir().join(format!("zed-crash-handler-{pid}")),
-                move |duration| background_executor.timer(duration),
-            )),
-        )
-    } else {
-        crashes::force_backtrace();
-        None
-    };
+    let crash_handler: Option<futures::future::Ready<()>> = None;
 
     let fs = Arc::new(RealFs::new(None, app.background_executor()));
     let (user_keymap_file_rx, user_keymap_watcher) = watch_config_file(
@@ -529,49 +482,6 @@ fn main() {
         let installation_id = cx.foreground_executor().block_on(installation_id).ok();
         let session = cx.foreground_executor().block_on(session);
 
-        let telemetry = client.telemetry();
-        telemetry.start(
-            system_id.as_ref().map(|id| id.to_string()),
-            installation_id.as_ref().map(|id| id.to_string()),
-            session.id().to_owned(),
-            cx,
-        );
-        cx.subscribe(&user_store, {
-            let telemetry = telemetry.clone();
-            move |_, evt: &client::user::Event, cx| match evt {
-                client::user::Event::PrivateUserInfoUpdated => {
-                    if let Some(crash_client) = cx.try_global::<CrashHandler>() {
-                        crashes::set_user_info(
-                            &crash_client.0,
-                            crashes::UserInfo {
-                                metrics_id: telemetry.metrics_id().map(|s| s.to_string()),
-                                is_staff: telemetry.is_staff(),
-                            },
-                        );
-                    }
-                }
-                _ => {}
-            }
-        })
-        .detach();
-
-        let is_new_install = matches!(&installation_id, Some(IdType::New(_)));
-
-        // We should rename these in the future to `first app open`, `first app open for release channel`, and `app open`
-        if let (Some(system_id), Some(installation_id)) = (&system_id, &installation_id) {
-            match (&system_id, &installation_id) {
-                (IdType::New(_), IdType::New(_)) => {
-                    telemetry::event!("App First Opened");
-                    telemetry::event!("App First Opened For Release Channel");
-                }
-                (IdType::Existing(_), IdType::New(_)) => {
-                    telemetry::event!("App First Opened For Release Channel");
-                }
-                (_, IdType::Existing(_)) => {
-                    telemetry::event!("App Opened");
-                }
-            }
-        }
         let app_session = cx.new(|cx| AppSession::new(session, cx));
 
         let app_state = Arc::new(AppState {
@@ -586,15 +496,9 @@ fn main() {
         });
         AppState::set_global(app_state.clone(), cx);
 
-        auto_update::init(client.clone(), cx);
-        auto_update_ui::init(cx);
-        reliability::init(client.clone(), cx);
-
         theme_settings::init(theme::LoadThemes::All(Box::new(Assets)), cx);
         eager_load_active_theme_and_icon_theme(fs.clone(), cx);
         command_palette::init(cx);
-        zed::telemetry_log::init(cx);
-        zed::remote_debug::init(cx);
 
         load_embedded_fonts(cx);
 
@@ -661,50 +565,12 @@ fn main() {
             }
         })
         .detach();
-        app_state.languages.set_theme(cx.theme().clone());
-        cx.observe_global::<GlobalTheme>({
-            let languages = app_state.languages.clone();
-            move |cx| {
-                languages.set_theme(cx.theme().clone());
-            }
-        })
-        .detach();
-        telemetry::event!(
-            "Settings Changed",
-            setting = "theme",
-            value = cx.theme().name.to_string()
-        );
-        telemetry::event!(
-            "Settings Changed",
-            setting = "keymap",
-            value = BaseKeymap::get_global(cx).to_string()
-        );
-        telemetry.flush_events().detach();
-
         let fs = app_state.fs.clone();
         load_user_themes_in_background(fs.clone(), cx);
         watch_themes(fs.clone(), cx);
 
         let menus = app_menus(cx);
         cx.set_menus(menus);
-
-        if let Some(mut crash_handler) = crash_handler {
-            let crash_handler2 = block_on(poll_once(&mut crash_handler));
-            match crash_handler2 {
-                Some(crash_handler) => {
-                    cx.set_global(CrashHandler(crash_handler));
-                }
-                None => {
-                    cx.spawn(async move |cx| {
-                        let client1 = crash_handler.await;
-                        cx.update(|cx| {
-                            cx.set_global(CrashHandler(client1));
-                        });
-                    })
-                    .detach();
-                }
-            }
-        }
 
         initialize_workspace(app_state.clone(), cx);
 
