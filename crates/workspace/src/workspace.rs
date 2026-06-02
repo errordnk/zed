@@ -5995,7 +5995,7 @@ impl Workspace {
         }
 
         if title.is_empty() {
-            title = "empty project".to_string();
+            title = "Sarnet".to_string();
         }
 
         let active_project_path = self.active_item(cx).and_then(|item| item.project_path(cx));

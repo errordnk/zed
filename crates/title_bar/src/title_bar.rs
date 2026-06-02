@@ -7,7 +7,6 @@ mod update_version;
 
 use crate::application_menu::{ApplicationMenu, show_menus};
 use crate::plan_chip::PlanChip;
-use agent_settings::{AgentSettings, WindowLayout};
 use arrayvec::ArrayVec;
 pub use platform_title_bar::{
     self, DraggedWindowTab, MergeAllWindows, MoveTabToNewWindow, PlatformTitleBar,
@@ -1078,11 +1077,6 @@ impl TitleBar {
                 let user_store = user_store.clone();
                 let workspace = workspace.clone();
 
-                let ai_enabled = !project::DisableAiSettings::get_global(cx).disable_ai;
-                let current_layout = AgentSettings::get_layout(cx);
-                let is_editor = matches!(current_layout, WindowLayout::Editor(_));
-                let is_agent = matches!(current_layout, WindowLayout::Agent(_));
-                let is_custom = matches!(current_layout, WindowLayout::Custom(_));
                 let fs = <dyn fs::Fs>::global(cx);
 
                 ContextMenu::build(window, cx, |menu, _, _cx| {
@@ -1196,46 +1190,6 @@ impl TitleBar {
                         "Extensions",
                         zed_actions::Extensions::default().boxed_clone(),
                     )
-                    .when(ai_enabled, |menu| {
-                        let fs = fs.clone();
-                        menu.separator()
-                            .submenu("Panel Layout", move |menu, _window, _cx| {
-                                let fs = fs.clone();
-                                menu.toggleable_entry(
-                                    "Classic",
-                                    is_editor,
-                                    IconPosition::Start,
-                                    None,
-                                    {
-                                        let fs = fs.clone();
-                                        move |_window, cx| {
-                                            drop(AgentSettings::set_layout(
-                                                WindowLayout::Editor(None),
-                                                fs.clone(),
-                                                cx,
-                                            ));
-                                        }
-                                    },
-                                )
-                                .toggleable_entry("Agentic", is_agent, IconPosition::Start, None, {
-                                    let fs = fs.clone();
-                                    move |_window, cx| {
-                                        drop(AgentSettings::set_layout(
-                                            WindowLayout::Agent(None),
-                                            fs.clone(),
-                                            cx,
-                                        ));
-                                    }
-                                })
-                                .when(is_custom, |menu| {
-                                    menu.item(
-                                        ContextMenuEntry::new("Custom")
-                                            .toggleable(IconPosition::Start, true)
-                                            .disabled(true),
-                                    )
-                                })
-                            })
-                    })
                     .when(is_signed_in, |this| {
                         this.separator()
                             .action("Sign Out", client::SignOut.boxed_clone())

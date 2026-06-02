@@ -718,11 +718,6 @@ fn main() {
         });
         vim::init(cx);
         terminal_view::init(cx);
-        encoding_selector::init(cx);
-        line_ending_selector::init(cx);
-        theme_selector::init(cx);
-        settings_profile_selector::init(cx);
-        settings_ui::init(cx);
         keymap_editor::init(cx);
         extensions_ui::init(cx);
         json_schema_store::init(cx);
