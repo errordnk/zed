@@ -4169,40 +4169,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "diagnostics"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "collections",
- "component",
- "ctor",
- "editor",
- "futures-lite 1.13.0",
- "gpui",
- "indoc",
- "itertools 0.14.0",
- "language",
- "log",
- "lsp",
- "markdown",
- "pretty_assertions",
- "project",
- "rand 0.9.4",
- "serde",
- "serde_json",
- "settings",
- "text",
- "theme",
- "theme_settings",
- "ui",
- "unindent",
- "util",
- "workspace",
- "zed_actions",
- "zlog",
-]
-
-[[package]]
 name = "dialoguer"
 version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -13435,7 +13401,6 @@ dependencies = [
  "collections",
  "command_palette",
  "db",
- "diagnostics",
  "editor",
  "env_logger 0.11.8",
  "etw_tracing",

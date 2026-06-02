@@ -42,7 +42,6 @@ pub fn app_menus(cx: &mut App) -> Vec<Menu> {
         MenuItem::action("Project Panel", zed_actions::project_panel::ToggleFocus),
         MenuItem::action("Terminal Panel", terminal_panel::ToggleFocus),
         MenuItem::separator(),
-        MenuItem::action("Diagnostics", diagnostics::Deploy),
         MenuItem::separator(),
     ];
 

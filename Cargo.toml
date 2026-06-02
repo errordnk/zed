@@ -11,7 +11,6 @@ members = [
     "crates/command_palette",
     "crates/command_palette_hooks",
     "crates/db",
-    "crates/diagnostics",
     "crates/editor",
     "crates/etw_tracing",
     "crates/feature_flags",

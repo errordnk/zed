@@ -512,7 +512,6 @@ fn main() {
         load_embedded_fonts(cx);
 
         editor::init(cx);
-        diagnostics::init(cx);
         title_bar::init(cx);
 
         workspace::init(app_state.clone(), cx);
