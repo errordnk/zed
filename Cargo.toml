@@ -15,7 +15,6 @@ members = [
     "crates/etw_tracing",
     "crates/feature_flags",
     "crates/feature_flags_macros",
-    "crates/file_icons",
     "crates/fs",
     "crates/fuzzy",
     "crates/fuzzy_nucleo",
