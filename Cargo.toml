@@ -94,8 +94,6 @@ members = [
     "crates/ui_prompt",
     "crates/util",
     "crates/util_macros",
-    "crates/vim",
-    "crates/vim_mode_setting",
     "crates/watch",
     "crates/workspace",
     "crates/worktree",
