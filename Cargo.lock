@@ -13806,8 +13806,6 @@ dependencies = [
  "urlencoding",
  "util",
  "uuid",
- "vim",
- "vim_mode_setting",
  "watch",
  "windows 0.61.3",
  "windows_resources",
