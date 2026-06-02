@@ -33,7 +33,6 @@ members = [
     "crates/http_client_tls",
     "crates/install_cli",
     "crates/json_schema_store",
-    "crates/keymap_editor",
     "crates/language",
     "crates/language_core",
     "crates/lsp",
