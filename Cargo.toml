@@ -62,7 +62,6 @@ members = [
     "crates/remote_connection",
     "crates/reqwest_client",
     "crates/rope",
-    "crates/rpc",
     "crates/search",
     "crates/session",
     "crates/settings",
