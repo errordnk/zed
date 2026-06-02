@@ -13428,7 +13428,6 @@ dependencies = [
  "ashpd",
  "askpass",
  "assets",
- "breadcrumbs",
  "chrono",
  "clap",
  "cli",

@@ -17,7 +17,6 @@ use anyhow::Context as _;
 pub use app_menus::*;
 use assets::Assets;
 
-use breadcrumbs::Breadcrumbs;
 use client::zed_urls;
 use collections::VecDeque;
 use editor::{Editor, MultiBuffer};
@@ -1050,8 +1049,6 @@ fn initialize_pane(
     let workspace_handle = cx.weak_entity();
     pane.update(cx, |pane, cx| {
         pane.toolbar().update(cx, |toolbar, cx| {
-            let breadcrumbs = cx.new(|_| Breadcrumbs::new());
-            toolbar.add_item(breadcrumbs, window, cx);
             let buffer_search_bar = cx.new(|cx| {
                 search::BufferSearchBar::new(
                     Some(workspace.project().read(cx).languages().clone()),
