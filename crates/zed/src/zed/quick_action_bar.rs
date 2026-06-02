@@ -24,7 +24,7 @@ use workspace::item::ItemBufferKind;
 use workspace::{
     ToolbarItemEvent, ToolbarItemLocation, ToolbarItemView, Workspace, item::ItemHandle,
 };
-use zed_actions::{agent::AddSelectionToThread, outline::ToggleOutline};
+use zed_actions::outline::ToggleOutline;
 
 const MAX_CODE_ACTION_MENU_LINES: u32 = 16;
 
@@ -262,13 +262,6 @@ impl Render for QuickActionBar {
                                     skip_soft_wrap: true,
                                 }),
                             )
-                            .when(!disable_ai, |this| {
-                                this.separator().action_disabled_when(
-                                    !has_selection,
-                                    "Add to Agent Thread",
-                                    Box::new(AddSelectionToThread),
-                                )
-                            })
                             .separator()
                             .action("Go to Symbol", Box::new(ToggleOutline))
                             .action("Go to Line/Column", Box::new(ToggleGoToLine))
@@ -560,50 +553,6 @@ impl Render for QuickActionBar {
                                                     window,
                                                     cx,
                                                 );
-                                            })
-                                            .ok();
-                                    }
-                                },
-                            );
-
-                            menu = menu.separator();
-
-                            menu = menu.toggleable_entry(
-                                "Inline Git Blame",
-                                git_blame_inline_enabled,
-                                IconPosition::Start,
-                                Some(editor::actions::ToggleGitBlameInline.boxed_clone()),
-                                {
-                                    let editor = editor.clone();
-                                    move |window, cx| {
-                                        editor
-                                            .update(cx, |editor, cx| {
-                                                editor.toggle_git_blame_inline(
-                                                    &editor::actions::ToggleGitBlameInline,
-                                                    window,
-                                                    cx,
-                                                )
-                                            })
-                                            .ok();
-                                    }
-                                },
-                            );
-
-                            menu = menu.toggleable_entry(
-                                "Column Git Blame",
-                                show_git_blame_gutter,
-                                IconPosition::Start,
-                                Some(git::Blame.boxed_clone()),
-                                {
-                                    let editor = editor.clone();
-                                    move |window, cx| {
-                                        editor
-                                            .update(cx, |editor, cx| {
-                                                editor.toggle_git_blame(
-                                                    &git::Blame,
-                                                    window,
-                                                    cx,
-                                                )
                                             })
                                             .ok();
                                     }

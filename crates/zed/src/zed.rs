@@ -22,14 +22,10 @@ use breadcrumbs::Breadcrumbs;
 use client::zed_urls;
 use collections::VecDeque;
 use editor::{Editor, MultiBuffer};
-use extension_host::ExtensionStore;
 use feature_flags::{FeatureFlagAppExt as _, PanicFeatureFlag};
 use fs::Fs;
 use futures::FutureExt as _;
 use futures::{StreamExt, channel::mpsc, select_biased};
-use git_ui::commit_view::CommitViewToolbar;
-use git_ui::git_panel::GitPanel;
-use git_ui::project_diff::{BranchDiffToolbar, ProjectDiffToolbar};
 use gpui::{
     Action, App, AppContext as _, AsyncWindowContext, ClipboardItem, Context, DismissEvent,
     Element, Entity, FocusHandle, Focusable, Image, ImageFormat, KeyBinding, ParentElement,
@@ -38,8 +34,6 @@ use gpui::{
     actions, image_cache, img, point, px, retain_all,
 };
 use language::Capability;
-use language_tools::lsp_button::{self, LspButton};
-use language_tools::lsp_log_view::LspLogToolbarItemView;
 use markdown::{Markdown, MarkdownElement, MarkdownFont, MarkdownStyle};
 use migrate::{MigrationBanner, MigrationEvent, MigrationNotification, MigrationType};
 use migrator::migrate_keymap;
@@ -488,34 +482,15 @@ pub fn initialize_workspace(app_state: Arc<AppState>, cx: &mut App) {
             window,
             cx,
         );
-        let active_buffer_language =
-            cx.new(|_| language_selector::ActiveBufferLanguage::new(workspace));
-        let active_toolchain_language =
-            cx.new(|cx| toolchain_selector::ActiveToolchain::new(workspace, window, cx));
         let vim_mode_indicator = cx.new(|cx| vim::ModeIndicator::new(window, cx));
-
-        let lsp_button_menu_handle = PopoverMenuHandle::default();
-        let lsp_button =
-            cx.new(|cx| LspButton::new(workspace, lsp_button_menu_handle.clone(), window, cx));
-        workspace.register_action({
-            move |_, _: &lsp_button::ToggleMenu, window, cx| {
-                lsp_button_menu_handle.toggle(window, cx);
-            }
-        });
 
         let cursor_position =
             cx.new(|_| go_to_line::cursor_position::CursorPosition::new(workspace));
-        let merge_conflict_indicator =
-            cx.new(|cx| git_ui::MergeConflictIndicator::new(workspace, cx));
         workspace.status_bar().update(cx, |status_bar, cx| {
             status_bar.add_left_item(search_button, window, cx);
-            status_bar.add_left_item(lsp_button, window, cx);
             status_bar.add_left_item(diagnostic_summary, window, cx);
             status_bar.add_left_item(active_file_name, window, cx);
-            status_bar.add_left_item(merge_conflict_indicator, window, cx);
             status_bar.add_left_item(activity_indicator, window, cx);
-            status_bar.add_right_item(active_buffer_language, window, cx);
-            status_bar.add_right_item(active_toolchain_language, window, cx);
             status_bar.add_right_item(vim_mode_indicator, window, cx);
             status_bar.add_right_item(cursor_position, window, cx);
         });
@@ -647,7 +622,6 @@ fn initialize_panels(window: &mut Window, cx: &mut Context<Workspace>) -> Task<a
     cx.spawn_in(window, async move |workspace_handle, cx| {
         let project_panel = ProjectPanel::load(workspace_handle.clone(), cx.clone());
         let terminal_panel = TerminalPanel::load(workspace_handle.clone(), cx.clone());
-        let git_panel = GitPanel::load(workspace_handle.clone(), cx.clone());
 
         async fn add_panel_when_ready(
             panel_task: impl Future<Output = anyhow::Result<Entity<impl workspace::Panel>>> + 'static,
@@ -667,7 +641,6 @@ fn initialize_panels(window: &mut Window, cx: &mut Context<Workspace>) -> Task<a
         futures::join!(
             add_panel_when_ready(project_panel, workspace_handle.clone(), cx.clone()),
             add_panel_when_ready(terminal_panel, workspace_handle.clone(), cx.clone()),
-            add_panel_when_ready(git_panel, workspace_handle.clone(), cx.clone()),
         );
 
         anyhow::Ok(())
@@ -1107,25 +1080,12 @@ fn initialize_pane(
             toolbar.add_item(diagnostic_editor_controls, window, cx);
             let project_search_bar = cx.new(|_| ProjectSearchBar::new());
             toolbar.add_item(project_search_bar, window, cx);
-            let lsp_log_item = cx.new(|_| LspLogToolbarItemView::new());
-            toolbar.add_item(lsp_log_item, window, cx);
             let telemetry_log_item =
                 cx.new(|cx| telemetry_log::TelemetryLogToolbarItemView::new(window, cx));
             toolbar.add_item(telemetry_log_item, window, cx);
-            let syntax_tree_item = cx.new(|_| language_tools::SyntaxTreeToolbarItemView::new());
-            toolbar.add_item(syntax_tree_item, window, cx);
             let migration_banner =
                 cx.new(|inner_cx| MigrationBanner::new(workspace_handle.clone(), inner_cx));
             toolbar.add_item(migration_banner, window, cx);
-            let highlights_tree_item =
-                cx.new(|_| language_tools::HighlightsTreeToolbarItemView::new());
-            toolbar.add_item(highlights_tree_item, window, cx);
-            let project_diff_toolbar = cx.new(|cx| ProjectDiffToolbar::new(workspace, cx));
-            toolbar.add_item(project_diff_toolbar, window, cx);
-            let branch_diff_toolbar = cx.new(BranchDiffToolbar::new);
-            toolbar.add_item(branch_diff_toolbar, window, cx);
-            let commit_view_toolbar = cx.new(|_| CommitViewToolbar::new());
-            toolbar.add_item(commit_view_toolbar, window, cx);
         })
     });
 }
@@ -2183,95 +2143,7 @@ fn open_settings_file(
 ///
 /// This fast path exists to load these themes as soon as possible so the user
 /// doesn't see the default themes while waiting on extensions to load.
-pub(crate) fn eager_load_active_theme_and_icon_theme(fs: Arc<dyn Fs>, cx: &mut App) {
-    let extension_store = ExtensionStore::global(cx);
-    let theme_registry = ThemeRegistry::global(cx);
-    let theme_settings = ThemeSettings::get_global(cx);
-    let appearance = SystemAppearance::global(cx).0;
-
-    enum LoadTarget {
-        Theme(PathBuf),
-        IconTheme((PathBuf, PathBuf)),
-    }
-
-    let theme_name = theme_settings.theme.name(appearance);
-    let icon_theme_name = theme_settings.icon_theme.name(appearance);
-    let themes_to_load = [
-        theme_registry
-            .get(&theme_name.0)
-            .is_err()
-            .then(|| {
-                extension_store
-                    .read(cx)
-                    .path_to_extension_theme(&theme_name.0)
-            })
-            .flatten()
-            .map(LoadTarget::Theme),
-        theme_registry
-            .get_icon_theme(&icon_theme_name.0)
-            .is_err()
-            .then(|| {
-                extension_store
-                    .read(cx)
-                    .path_to_extension_icon_theme(&icon_theme_name.0)
-            })
-            .flatten()
-            .map(LoadTarget::IconTheme),
-    ];
-
-    enum ReloadTarget {
-        Theme,
-        IconTheme,
-    }
-
-    let executor = cx.background_executor();
-    let reload_tasks = parking_lot::Mutex::new(Vec::with_capacity(themes_to_load.len()));
-
-    let mut themes_to_load = themes_to_load.into_iter().flatten().peekable();
-
-    if themes_to_load.peek().is_none() {
-        return;
-    }
-
-    cx.foreground_executor().block_on(executor.scoped(|scope| {
-        for load_target in themes_to_load {
-            let theme_registry = &theme_registry;
-            let reload_tasks = &reload_tasks;
-            let fs = fs.clone();
-
-            scope.spawn(async move {
-                match load_target {
-                    LoadTarget::Theme(theme_path) => {
-                        if let Some(bytes) = fs.load_bytes(&theme_path).await.log_err()
-                            && load_user_theme(theme_registry, &bytes).log_err().is_some()
-                        {
-                            reload_tasks.lock().push(ReloadTarget::Theme);
-                        }
-                    }
-                    LoadTarget::IconTheme((icon_theme_path, icons_root_path)) => {
-                        if let Some(bytes) = fs.load_bytes(&icon_theme_path).await.log_err()
-                            && let Some(icon_theme_family) =
-                                deserialize_icon_theme(&bytes).log_err()
-                            && theme_registry
-                                .load_icon_theme(icon_theme_family, &icons_root_path)
-                                .log_err()
-                                .is_some()
-                        {
-                            reload_tasks.lock().push(ReloadTarget::IconTheme);
-                        }
-                    }
-                }
-            });
-        }
-    }));
-
-    for reload_target in reload_tasks.into_inner() {
-        match reload_target {
-            ReloadTarget::Theme => theme_settings::reload_theme(cx),
-            ReloadTarget::IconTheme => theme_settings::reload_icon_theme(cx),
-        };
-    }
-}
+pub(crate) fn eager_load_active_theme_and_icon_theme(_fs: Arc<dyn Fs>, _cx: &mut App) {}
 
 #[cfg(test)]
 mod tests {

@@ -48,19 +48,6 @@ pub enum OpenRequestKind {
         ),
     ),
     FocusApp,
-    Extension {
-        extension_id: String,
-    },
-    AgentPanel {
-        external_source_prompt: Option<String>,
-    },
-    SharedAgentThread {
-        session_id: String,
-    },
-    InstallSkill {
-        /// Full `SKILL.md` contents embedded in a `zed://skill` share link.
-        content: String,
-    },
     DockMenuAction {
         index: usize,
     },
@@ -71,12 +58,6 @@ pub enum OpenRequestKind {
         /// `None` opens settings without navigating to a specific path.
         setting_path: Option<String>,
     },
-    GitClone {
-        repo_url: SharedString,
-    },
-    GitCommit {
-        sha: String,
-    },
 }
 
 impl std::fmt::Debug for OpenRequestKind {
@@ -84,24 +65,6 @@ impl std::fmt::Debug for OpenRequestKind {
         match self {
             Self::CliConnection(_) => write!(f, "CliConnection(..)"),
             Self::FocusApp => write!(f, "FocusApp"),
-            Self::Extension { extension_id } => f
-                .debug_struct("Extension")
-                .field("extension_id", extension_id)
-                .finish(),
-            Self::AgentPanel {
-                external_source_prompt,
-            } => f
-                .debug_struct("AgentPanel")
-                .field("external_source_prompt", external_source_prompt)
-                .finish(),
-            Self::SharedAgentThread { session_id } => f
-                .debug_struct("SharedAgentThread")
-                .field("session_id", session_id)
-                .finish(),
-            Self::InstallSkill { content } => f
-                .debug_struct("InstallSkill")
-                .field("content_len", &content.len())
-                .finish(),
             Self::DockMenuAction { index } => f
                 .debug_struct("DockMenuAction")
                 .field("index", index)
@@ -114,11 +77,6 @@ impl std::fmt::Debug for OpenRequestKind {
                 .debug_struct("Setting")
                 .field("setting_path", setting_path)
                 .finish(),
-            Self::GitClone { repo_url } => f
-                .debug_struct("GitClone")
-                .field("repo_url", repo_url)
-                .finish(),
-            Self::GitCommit { sha } => f.debug_struct("GitCommit").field("sha", sha).finish(),
         }
     }
 }
@@ -169,20 +127,6 @@ impl OpenRequest {
             } else if let Some(file) = url.strip_prefix("zed://ssh") {
                 let ssh_url = "ssh:/".to_string() + file;
                 this.parse_ssh_file_path(&ssh_url, cx)?
-            } else if let Some(extension_id) = url.strip_prefix("zed://extension/") {
-                this.kind = Some(OpenRequestKind::Extension {
-                    extension_id: extension_id.to_string(),
-                });
-            } else if let Some(session_id_str) = url.strip_prefix("zed://agent/shared/") {
-                if uuid::Uuid::parse_str(session_id_str).is_ok() {
-                    this.kind = Some(OpenRequestKind::SharedAgentThread {
-                        session_id: session_id_str.to_string(),
-                    });
-                } else {
-                    log::error!("Invalid session ID in URL: {}", session_id_str);
-                }
-            } else if let Some(agent_path) = url.strip_prefix("zed://agent") {
-                this.parse_agent_url(agent_path)
             } else if url == "zed://" || url == "zed://open" || url == "zed://open/" {
                 this.kind = Some(OpenRequestKind::FocusApp);
             } else if let Some(schema_path) = url.strip_prefix("zed://schemas/") {
@@ -195,10 +139,6 @@ impl OpenRequest {
                 this.kind = Some(OpenRequestKind::Setting {
                     setting_path: Some(setting_path.to_string()),
                 });
-            } else if let Some(clone_path) = url.strip_prefix("zed://git/clone") {
-                this.parse_git_clone_url(clone_path)?
-            } else if let Some(commit_path) = url.strip_prefix("zed://git/commit/") {
-                this.parse_git_commit_url(commit_path)?
             } else if url.starts_with("ssh://") {
                 this.parse_ssh_file_path(&url, cx)?
             } else if let Some(zed_link) = parse_zed_link(&url, cx) {
@@ -225,60 +165,6 @@ impl OpenRequest {
         if let Some(decoded) = urlencoding::decode(file).log_err() {
             self.open_paths.push(decoded.into_owned())
         }
-    }
-
-    fn parse_agent_url(&mut self, agent_path: &str) {
-        // Format: "" or "?prompt=<text>".
-        let agent_path = agent_path.strip_prefix('/').unwrap_or(agent_path);
-        let external_source_prompt = agent_path.strip_prefix('?').and_then(|query| {
-            url::form_urlencoded::parse(query.as_bytes())
-                .find_map(|(key, value)| (key == "prompt").then_some(value.into_owned()))
-        });
-        self.kind = Some(OpenRequestKind::AgentPanel {
-            external_source_prompt,
-        });
-    }
-
-    fn parse_git_clone_url(&mut self, clone_path: &str) -> Result<()> {
-        // Format: /?repo=<url> or ?repo=<url>
-        let clone_path = clone_path.strip_prefix('/').unwrap_or(clone_path);
-
-        let query = clone_path
-            .strip_prefix('?')
-            .context("invalid git clone url: missing query string")?;
-
-        let repo_url = url::form_urlencoded::parse(query.as_bytes())
-            .find_map(|(key, value)| (key == "repo").then_some(value))
-            .filter(|s| !s.is_empty())
-            .context("invalid git clone url: missing repo query parameter")?
-            .to_string()
-            .into();
-
-        self.kind = Some(OpenRequestKind::GitClone { repo_url });
-
-        Ok(())
-    }
-
-    fn parse_git_commit_url(&mut self, commit_path: &str) -> Result<()> {
-        // Format: <sha>?repo=<path>
-        let (sha, query) = commit_path
-            .split_once('?')
-            .context("invalid git commit url: missing query string")?;
-        anyhow::ensure!(!sha.is_empty(), "invalid git commit url: missing sha");
-
-        let repo = url::form_urlencoded::parse(query.as_bytes())
-            .find_map(|(key, value)| (key == "repo").then_some(value))
-            .filter(|s| !s.is_empty())
-            .context("invalid git commit url: missing repo query parameter")?
-            .to_string();
-
-        self.open_paths.push(repo);
-
-        self.kind = Some(OpenRequestKind::GitCommit {
-            sha: sha.to_string(),
-        });
-
-        Ok(())
     }
 
     fn parse_ssh_file_path(&mut self, file: &str, cx: &App) -> Result<()> {

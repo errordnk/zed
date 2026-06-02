@@ -21,10 +21,8 @@ use client::{Client, ProxySettings, UserStore, parse_zed_link};
 use collections::HashMap;
 use crashes::InitCrashHandler;
 use db::kvp::{GlobalKeyValueStore, KeyValueStore};
-use extension::ExtensionHostProxy;
 use fs::{Fs, RealFs};
 use futures::{StreamExt, channel::oneshot};
-use git::GitHostingProviderRegistry;
 use gpui::{
     App, AppContext, Application, AsyncApp, QuitMode, Task, TaskExt,
     UpdateGlobal as _, block_on,
@@ -32,11 +30,9 @@ use gpui::{
 use gpui_platform;
 
 use gpui_tokio::Tokio;
-use language::LanguageRegistry;
 use reqwest_client::ReqwestClient;
 
 use assets::Assets;
-use node_runtime::{NodeBinaryOptions, NodeRuntime};
 use parking_lot::Mutex;
 use project::{project_settings::ProjectSettings, trusted_worktrees};
 use release_channel::{AppCommitSha, AppVersion, ReleaseChannel};
@@ -439,38 +435,13 @@ fn main() {
         None
     };
 
-    let git_hosting_provider_registry = Arc::new(GitHostingProviderRegistry::new());
-    let git_binary_path =
-        if cfg!(target_os = "macos") && option_env!("ZED_BUNDLE").as_deref() == Some("true") {
-            app.path_for_auxiliary_executable("git")
-                .context("could not find git binary path")
-                .log_err()
-        } else {
-            None
-        };
-    if let Some(git_binary_path) = &git_binary_path {
-        log::info!("Using git binary path: {:?}", git_binary_path);
-    }
-
-    let fs = Arc::new(RealFs::new(git_binary_path, app.background_executor()));
+    let fs = Arc::new(RealFs::new(None, app.background_executor()));
     let (user_keymap_file_rx, user_keymap_watcher) = watch_config_file(
         &app.background_executor(),
         fs.clone(),
         paths::keymap_file().clone(),
     );
 
-    let (shell_env_loaded_tx, shell_env_loaded_rx) = oneshot::channel();
-    if !stdout_is_a_pty() {
-        app.background_executor()
-            .spawn(async {
-                #[cfg(unix)]
-                util::load_login_shell_environment().await.log_err();
-                shell_env_loaded_tx.send(()).ok();
-            })
-            .detach();
-    } else {
-        drop(shell_env_loaded_tx)
-    }
 
     app.on_open_urls({
         let open_listener = open_listener.clone();
@@ -535,70 +506,15 @@ fn main() {
 
         <dyn Fs>::set_global(fs.clone(), cx);
 
-        GitHostingProviderRegistry::set_global(git_hosting_provider_registry, cx);
-        git_hosting_providers::init(cx);
-
         OpenListener::set_global(cx, open_listener.clone());
-
-        extension::init(cx);
-        let extension_host_proxy = ExtensionHostProxy::global(cx);
 
         let client = Client::production(cx);
         cx.set_http_client(client.http_client());
-        let mut languages = LanguageRegistry::new(cx.background_executor().clone());
-        languages.set_language_server_download_dir(paths::languages_dir().clone());
-        let languages = Arc::new(languages);
-        let (mut tx, rx) = watch::channel(None);
-        cx.observe_global::<SettingsStore>(move |cx| {
-            let settings = &ProjectSettings::get_global(cx).node;
-            let options = NodeBinaryOptions {
-                allow_path_lookup: !settings.ignore_system_version,
-                // TODO: Expose this setting
-                allow_binary_download: true,
-                use_paths: settings.path.as_ref().map(|node_path| {
-                    let node_path = PathBuf::from(shellexpand::tilde(node_path).as_ref());
-                    let npm_path = settings
-                        .npm_path
-                        .as_ref()
-                        .map(|path| PathBuf::from(shellexpand::tilde(&path).as_ref()));
-                    (
-                        node_path.clone(),
-                        npm_path.unwrap_or_else(|| {
-                            let base_path = PathBuf::new();
-                            node_path.parent().unwrap_or(&base_path).join("npm")
-                        }),
-                    )
-                }),
-            };
-            tx.send(Some(options)).log_err();
-        })
-        .detach();
-        ui::on_new_scrollbars::<SettingsStore>(cx);
-
-        let node_runtime = NodeRuntime::new(client.http_client(), Some(shell_env_loaded_rx), rx);
-
-        languages::init(languages.clone(), fs.clone(), node_runtime.clone(), cx);
+        let languages = Arc::new(language::LanguageRegistry::new(
+            cx.background_executor().clone(),
+        ));
         let user_store = cx.new(|cx| UserStore::new(client.clone(), cx));
         let workspace_store = cx.new(|cx| WorkspaceStore::new(client.clone(), cx));
-
-        language_extension::init(
-            language_extension::LspAccess::ViaWorkspaces({
-                let workspace_store = workspace_store.clone();
-                Arc::new(move |cx: &mut App| {
-                    workspace_store.update(cx, |workspace_store, cx| {
-                        Ok(workspace_store
-                            .workspaces()
-                            .filter_map(|weak| weak.upgrade())
-                            .map(|workspace: gpui::Entity<workspace::Workspace>| {
-                                workspace.read(cx).project().read(cx).lsp_store()
-                            })
-                            .collect())
-                    })
-                })
-            }),
-            extension_host_proxy.clone(),
-            languages.clone(),
-        );
 
         Client::set_global(client.clone(), cx);
 
@@ -665,7 +581,7 @@ fn main() {
             fs: fs.clone(),
             build_window_options,
             workspace_store,
-            node_runtime,
+            node_runtime: node_runtime::NodeRuntime::unavailable(),
             session: app_session,
         });
         AppState::set_global(app_state.clone(), cx);
@@ -673,25 +589,12 @@ fn main() {
         auto_update::init(client.clone(), cx);
         auto_update_ui::init(cx);
         reliability::init(client.clone(), cx);
-        extension_host::init(
-            extension_host_proxy.clone(),
-            app_state.fs.clone(),
-            app_state.client.clone(),
-            app_state.node_runtime.clone(),
-            cx,
-        );
 
         theme_settings::init(theme::LoadThemes::All(Box::new(Assets)), cx);
         eager_load_active_theme_and_icon_theme(fs.clone(), cx);
-        theme_extension::init(
-            extension_host_proxy,
-            ThemeRegistry::global(cx),
-            cx.background_executor().clone(),
-        );
         command_palette::init(cx);
         zed::telemetry_log::init(cx);
         zed::remote_debug::init(cx);
-        snippet_provider::init(cx);
 
         load_embedded_fonts(cx);
 
@@ -719,7 +622,6 @@ fn main() {
         vim::init(cx);
         terminal_view::init(cx);
         keymap_editor::init(cx);
-        extensions_ui::init(cx);
         json_schema_store::init(cx);
         #[cfg(target_os = "windows")]
         etw_tracing::init(cx);
@@ -782,8 +684,6 @@ fn main() {
         let fs = app_state.fs.clone();
         load_user_themes_in_background(fs.clone(), cx);
         watch_themes(fs.clone(), cx);
-        #[cfg(debug_assertions)]
-        watch_languages(fs.clone(), app_state.languages.clone(), cx);
 
         let menus = app_menus(cx);
         cx.set_menus(menus);
@@ -931,27 +831,6 @@ fn handle_open_request(request: OpenRequest, app_state: Arc<AppState>, cx: &mut 
                 })
                 .detach_and_log_err(cx);
             }
-            OpenRequestKind::Extension { extension_id } => {
-                cx.spawn(async move |cx| {
-                    let workspace =
-                        workspace::get_any_active_multi_workspace(app_state, cx.clone()).await?;
-                    workspace.update(cx, |_, window, cx| {
-                        window.dispatch_action(
-                            Box::new(zed_actions::Extensions {
-                                category_filter: None,
-                                id: Some(extension_id),
-                            }),
-                            cx,
-                        );
-                    })
-                })
-                .detach_and_log_err(cx);
-            }
-            OpenRequestKind::AgentPanel { .. }
-            | OpenRequestKind::SharedAgentThread { .. }
-            | OpenRequestKind::InstallSkill { .. } => {
-                log::warn!("AI features are disabled in Sarnet");
-            }
             OpenRequestKind::DockMenuAction { index } => {
                 cx.perform_dock_menu_action(index);
             }
@@ -1031,9 +910,6 @@ fn handle_open_request(request: OpenRequest, app_state: Arc<AppState>, cx: &mut 
                     })
                 })
                 .detach_and_log_err(cx);
-            }
-            OpenRequestKind::GitClone { .. } | OpenRequestKind::GitCommit { .. } => {
-                log::warn!("GitClone/GitCommit URL handler not supported in Sarnet");
             }
         }
 
@@ -1587,41 +1463,6 @@ fn watch_themes(fs: Arc<dyn fs::Fs>, cx: &mut App) {
         }
     })
     .detach()
-}
-
-#[cfg(debug_assertions)]
-fn watch_languages(fs: Arc<dyn fs::Fs>, languages: Arc<LanguageRegistry>, cx: &mut App) {
-    use std::time::Duration;
-
-    cx.background_spawn(async move {
-        let languages_src = Path::new("crates/grammars/src");
-        let Some(languages_src) = fs.canonicalize(languages_src).await.log_err() else {
-            return;
-        };
-
-        let (mut events, watcher) = fs.watch(&languages_src, Duration::from_millis(100)).await;
-
-        // add subdirectories since fs.watch is not recursive on Linux
-        if let Some(mut paths) = fs.read_dir(&languages_src).await.log_err() {
-            while let Some(path) = paths.next().await {
-                if let Some(path) = path.log_err()
-                    && fs.is_dir(&path).await
-                {
-                    watcher.add(&path).log_err();
-                }
-            }
-        }
-
-        while let Some(event) = events.next().await {
-            let has_language_file = event
-                .iter()
-                .any(|event| event.path.extension().is_some_and(|ext| ext == "scm"));
-            if has_language_file {
-                languages.reload();
-            }
-        }
-    })
-    .detach();
 }
 
 fn dump_all_gpui_actions() {
