@@ -1,5 +1,4 @@
 pub mod html;
-mod mermaid;
 pub mod parser;
 mod path_range;
 
@@ -11,9 +10,6 @@ use gpui::UnderlineStyle;
 use language::LanguageName;
 
 use log::Level;
-use mermaid::{
-    MermaidState, ParsedMarkdownMermaidDiagram, extract_mermaid_diagrams, render_mermaid_diagram,
-};
 pub use path_range::{LineCol, PathWithRange};
 use settings::Settings as _;
 use theme_settings::ThemeSettings;
@@ -34,7 +30,7 @@ use gpui::{
     FocusHandle, Focusable, FontStyle, FontWeight, GlobalElementId, Hitbox, Hsla, Image,
     ImageFormat, ImageSource, KeyContext, Length, MouseButton, MouseDownEvent, MouseEvent,
     MouseMoveEvent, MouseUpEvent, Point, ScrollHandle, Stateful, StrikethroughStyle,
-    StyleRefinement, StyledImage, StyledText, Subscription, Task, TextAlign, TextLayout, TextRun,
+    StyleRefinement, StyledImage, StyledText, Task, TextAlign, TextLayout, TextRun,
     TextStyle, TextStyleRefinement, actions, img, point, quad,
 };
 use language::{CharClassifier, Language, LanguageRegistry, Rope};
@@ -333,9 +329,6 @@ pub struct Markdown {
     language_registry: Option<Arc<LanguageRegistry>>,
     fallback_code_block_language: Option<LanguageName>,
     options: MarkdownOptions,
-    mermaid_state: MermaidState,
-    _mermaid_theme_subscription: Option<Subscription>,
-    mermaid_showing_code: HashSet<usize>,
     copied_code_blocks: HashSet<ElementId>,
     wrapped_code_blocks: HashSet<usize>,
     code_block_scroll_handles: BTreeMap<usize, ScrollHandle>,
@@ -349,7 +342,6 @@ pub struct Markdown {
 pub struct MarkdownOptions {
     pub parse_links_only: bool,
     pub parse_html: bool,
-    pub render_mermaid_diagrams: bool,
     pub parse_heading_slugs: bool,
     pub render_metadata_blocks: bool,
 }
@@ -501,15 +493,6 @@ impl Markdown {
     ) -> Self {
         let focus_handle = cx.focus_handle();
 
-        let theme_subscription = if options.render_mermaid_diagrams {
-            Some(
-                cx.observe_global::<theme::GlobalTheme>(|this: &mut Self, cx| {
-                    this.invalidate_mermaid_cache(cx);
-                }),
-            )
-        } else {
-            None
-        };
         let mut this = Self {
             source,
             selection: Selection::default(),
@@ -525,9 +508,6 @@ impl Markdown {
             language_registry,
             fallback_code_block_language,
             options,
-            mermaid_state: MermaidState::default(),
-            _mermaid_theme_subscription: theme_subscription,
-            mermaid_showing_code: HashSet::default(),
             copied_code_blocks: HashSet::default(),
             wrapped_code_blocks: HashSet::default(),
             code_block_scroll_handles: BTreeMap::default(),
@@ -573,27 +553,6 @@ impl Markdown {
     fn retain_code_block_scroll_handles(&mut self, ids: &HashSet<usize>) {
         self.code_block_scroll_handles
             .retain(|id, _| ids.contains(id));
-    }
-
-    pub fn invalidate_mermaid_cache(&mut self, cx: &mut Context<Self>) {
-        if !self.options.render_mermaid_diagrams || self.parsed_markdown.mermaid_diagrams.is_empty()
-        {
-            return;
-        }
-
-        self.mermaid_state.clear();
-        self.mermaid_state.update(&self.parsed_markdown, cx);
-        cx.notify();
-    }
-
-    pub(crate) fn is_mermaid_showing_code(&self, source_offset: usize) -> bool {
-        self.mermaid_showing_code.contains(&source_offset)
-    }
-
-    pub(crate) fn toggle_mermaid_tab(&mut self, source_offset: usize) {
-        if !self.mermaid_showing_code.remove(&source_offset) {
-            self.mermaid_showing_code.insert(source_offset);
-        }
     }
 
     fn clear_code_block_scroll_handles(&mut self) {
@@ -829,7 +788,6 @@ impl Markdown {
             };
             self.active_root_block = None;
             self.images_by_source_offset.clear();
-            self.mermaid_state.clear();
             cx.notify();
             cx.refresh_windows();
             return;
@@ -847,7 +805,6 @@ impl Markdown {
         let source = self.source.clone();
         let should_parse_links_only = self.options.parse_links_only;
         let should_parse_html = self.options.parse_html;
-        let should_render_mermaid_diagrams = self.options.render_mermaid_diagrams;
         let should_parse_heading_slugs = self.options.parse_heading_slugs;
         let should_parse_metadata_blocks = self.options.render_metadata_blocks;
         let language_registry = self.language_registry.clone();
@@ -864,7 +821,6 @@ impl Markdown {
                         root_block_starts: Arc::default(),
                         html_blocks: BTreeMap::default(),
                         metadata_blocks: BTreeMap::default(),
-                        mermaid_diagrams: BTreeMap::default(),
                         heading_slugs: HashMap::default(),
                         footnote_definitions: HashMap::default(),
                     },
@@ -886,11 +842,6 @@ impl Markdown {
             let metadata_blocks = parsed.metadata_blocks;
             let heading_slugs = parsed.heading_slugs;
             let footnote_definitions = parsed.footnote_definitions;
-            let mermaid_diagrams = if should_render_mermaid_diagrams {
-                extract_mermaid_diagrams(&source, &events)
-            } else {
-                BTreeMap::default()
-            };
             let mut images_by_source_offset = HashMap::default();
             let mut languages_by_name = TreeMap::default();
             let mut languages_by_path = TreeMap::default();
@@ -952,7 +903,6 @@ impl Markdown {
                     root_block_starts: Arc::from(root_block_starts),
                     html_blocks,
                     metadata_blocks,
-                    mermaid_diagrams,
                     heading_slugs,
                     footnote_definitions,
                 },
@@ -970,15 +920,6 @@ impl Markdown {
                     block_index >= this.parsed_markdown.root_block_starts.len()
                 }) {
                     this.active_root_block = None;
-                }
-                if this.options.render_mermaid_diagrams {
-                    let parsed_markdown = this.parsed_markdown.clone();
-                    this.mermaid_state.update(&parsed_markdown, cx);
-                    this.mermaid_showing_code
-                        .retain(|offset| parsed_markdown.mermaid_diagrams.contains_key(offset));
-                } else {
-                    this.mermaid_state.clear();
-                    this.mermaid_showing_code.clear();
                 }
                 this.pending_parse.take();
                 if this.should_reparse {
@@ -1081,7 +1022,6 @@ pub struct ParsedMarkdown {
     pub root_block_starts: Arc<[usize]>,
     pub(crate) html_blocks: BTreeMap<usize, html::html_parser::ParsedHtmlBlock>,
     pub(crate) metadata_blocks: BTreeMap<usize, ParsedMetadataBlock>,
-    pub(crate) mermaid_diagrams: BTreeMap<usize, ParsedMarkdownMermaidDiagram>,
     pub heading_slugs: HashMap<SharedString, usize>,
     pub footnote_definitions: HashMap<SharedString, usize>,
 }
@@ -1908,14 +1848,12 @@ impl Element for MarkdownElement {
             self.style.base_text_style.clone(),
             self.style.syntax.clone(),
         );
-        let (parsed_markdown, images, active_root_block, render_mermaid_diagrams, mermaid_state) = {
+        let (parsed_markdown, images, active_root_block) = {
             let markdown = self.markdown.read(cx);
             (
                 markdown.parsed_markdown.clone(),
                 markdown.images_by_source_offset.clone(),
                 markdown.active_root_block,
-                markdown.options.render_mermaid_diagrams,
-                markdown.mermaid_state.clone(),
             )
         };
         let markdown_end = if let Some(last) = parsed_markdown.events.last() {
@@ -1927,7 +1865,6 @@ impl Element for MarkdownElement {
 
         let mut current_img_block_range: Option<Range<usize>> = None;
         let mut handled_html_block = false;
-        let mut rendered_mermaid_block = false;
         let mut rendered_metadata_block = false;
         for (index, (range, event)) in parsed_markdown.events.iter().enumerate() {
             // Skip alt text for images that rendered
@@ -1943,13 +1880,6 @@ impl Element for MarkdownElement {
                 } else {
                     continue;
                 }
-            }
-
-            if rendered_mermaid_block {
-                if matches!(event, MarkdownEvent::End(MarkdownTagEnd::CodeBlock)) {
-                    rendered_mermaid_block = false;
-                }
-                continue;
             }
 
             if rendered_metadata_block {
@@ -2043,35 +1973,6 @@ impl Element for MarkdownElement {
                             );
                         }
                         MarkdownTag::CodeBlock { kind, .. } => {
-                            if render_mermaid_diagrams
-                                && let Some(mermaid_diagram) =
-                                    parsed_markdown.mermaid_diagrams.get(&range.start)
-                            {
-                                let showing_code =
-                                    self.markdown.read(cx).is_mermaid_showing_code(range.start);
-                                let copy_button_visibility = match &self.code_block_renderer {
-                                    CodeBlockRenderer::Default {
-                                        copy_button_visibility,
-                                        ..
-                                    } => *copy_button_visibility,
-                                    _ => CopyButtonVisibility::VisibleOnHover,
-                                };
-                                builder.push_sourced_element(
-                                    mermaid_diagram.content_range.clone(),
-                                    render_mermaid_diagram(
-                                        mermaid_diagram,
-                                        &mermaid_state,
-                                        &self.style,
-                                        self.markdown.clone(),
-                                        range.start,
-                                        showing_code,
-                                        copy_button_visibility,
-                                    ),
-                                );
-                                rendered_mermaid_block = true;
-                                continue;
-                            }
-
                             let language = match kind {
                                 CodeBlockKind::Fenced => None,
                                 CodeBlockKind::FencedLang(language) => {
@@ -3063,18 +2964,6 @@ impl MarkdownElementBuilder {
         self.div_stack.last_mut().unwrap().extend(iter::once(div));
     }
 
-    fn push_sourced_element(&mut self, source_range: Range<usize>, element: impl Into<AnyElement>) {
-        self.flush_text();
-        let anchor = self.render_source_anchor(source_range);
-        self.div_stack.last_mut().unwrap().extend([{
-            div()
-                .relative()
-                .child(anchor)
-                .child(element.into())
-                .into_any_element()
-        }]);
-    }
-
     fn push_list(&mut self, bullet_index: Option<u64>) {
         self.list_stack.push(ListStackEntry { bullet_index });
     }
@@ -3222,29 +3111,6 @@ impl MarkdownElementBuilder {
 
     fn source_range_for_rendered(&self, rendered: &Range<usize>) -> Option<Range<usize>> {
         source_range_for_rendered(&self.pending_line.source_mappings, rendered)
-    }
-
-    fn render_source_anchor(&mut self, source_range: Range<usize>) -> AnyElement {
-        let mut text_style = self.base_text_style.clone();
-        text_style.color = Hsla::transparent_black();
-        let text = "\u{200B}";
-        let styled_text = StyledText::new(text).with_runs(vec![text_style.to_run(text.len())]);
-        self.rendered_lines.push(RenderedLine {
-            layout: styled_text.layout().clone(),
-            source_mappings: vec![SourceMapping {
-                rendered_index: 0,
-                source_index: source_range.start,
-            }],
-            source_end: source_range.end,
-            language: None,
-        });
-        div()
-            .absolute()
-            .top_0()
-            .left_0()
-            .opacity(0.)
-            .child(styled_text)
-            .into_any_element()
     }
 
     fn flush_text(&mut self) {
