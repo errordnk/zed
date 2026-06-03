@@ -10,7 +10,47 @@ use anyhow::{Context as _, Result, anyhow, bail};
 use async_compression::futures::bufread::GzipDecoder;
 use async_tar::Archive;
 use client::{Client, proto, telemetry::Telemetry};
-use cloud_api_types::{ExtensionMetadata, ExtensionProvides, GetExtensionsResponse};
+use chrono::{DateTime, Utc};
+use strum::EnumString;
+
+#[derive(Clone, serde::Serialize, serde::Deserialize, Debug, PartialEq)]
+pub struct ExtensionApiManifest {
+    pub name: String,
+    pub version: std::sync::Arc<str>,
+    pub description: Option<String>,
+    pub authors: Vec<String>,
+    pub repository: String,
+    pub schema_version: Option<i32>,
+    pub wasm_api_version: Option<String>,
+    #[serde(default)]
+    pub provides: BTreeSet<ExtensionProvides>,
+}
+
+#[derive(
+    Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy,
+    serde::Serialize, serde::Deserialize, EnumString, strum::Display, strum::EnumIter,
+)]
+#[serde(rename_all = "kebab-case")]
+#[strum(serialize_all = "kebab-case")]
+pub enum ExtensionProvides {
+    Themes, IconThemes, Languages, Grammars, LanguageServers,
+    ContextServers, AgentServers, SlashCommands, IndexedDocsProviders,
+    Snippets, DebugAdapters,
+}
+
+#[derive(Clone, serde::Serialize, serde::Deserialize, Debug, PartialEq)]
+pub struct ExtensionMetadata {
+    pub id: std::sync::Arc<str>,
+    #[serde(flatten)]
+    pub manifest: ExtensionApiManifest,
+    pub published_at: DateTime<Utc>,
+    pub download_count: u64,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct GetExtensionsResponse {
+    pub data: Vec<ExtensionMetadata>,
+}
 use collections::{BTreeMap, BTreeSet, FxHashSet, HashSet, btree_map};
 pub use extension::ExtensionManifest;
 use extension::extension_builder::{CompileExtensionOptions, ExtensionBuilder};
