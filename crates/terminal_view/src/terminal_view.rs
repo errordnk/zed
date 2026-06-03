@@ -938,6 +938,10 @@ impl TerminalView {
             dispatch_context.add("selection");
         }
 
+        if self.rename_editor.is_some() {
+            dispatch_context.add("renaming");
+        }
+
         dispatch_context
     }
 
