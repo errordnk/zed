@@ -1,12 +1,10 @@
 mod application_menu;
 pub mod collab;
 mod onboarding_banner;
-mod plan_chip;
 mod title_bar_settings;
 mod update_version;
 
 use crate::application_menu::{ApplicationMenu, show_menus};
-use crate::plan_chip::PlanChip;
 use arrayvec::ArrayVec;
 pub use platform_title_bar::{
     self, DraggedWindowTab, MergeAllWindows, MoveTabToNewWindow, PlatformTitleBar,
@@ -21,7 +19,6 @@ use crate::application_menu::{
 
 use auto_update::AutoUpdateStatus;
 use client::{Client, UserStore, zed_urls};
-use cloud_api_types::Plan;
 
 use gpui::{
     Action, Anchor, Animation, AnimationExt, AnyElement, App, Context, Element, Entity, Focusable,
@@ -1018,11 +1015,6 @@ impl TitleBar {
         let is_signed_in = user.is_some();
 
         let has_subscription_period = user_store_read.subscription_period().is_some();
-        let plan = user_store_read.plan().filter(|_| {
-            // Since the user might be on the legacy free plan we filter based on whether we have a subscription period.
-            has_subscription_period
-        });
-
         let has_organization = user_store_read.current_organization().is_some();
 
         let current_organization = user_store_read.current_organization();
@@ -1032,10 +1024,7 @@ impl TitleBar {
         let organizations: Vec<_> = user_store_read
             .organizations()
             .iter()
-            .map(|org| {
-                let plan = user_store_read.plan_for_organization(&org.id);
-                (org.clone(), plan)
-            })
+            .map(|org| org.clone())
             .collect();
 
         let show_user_picture = TitleBarSettings::get_global(cx).show_user_picture;
@@ -1090,9 +1079,6 @@ impl TitleBar {
                                     .w_full()
                                     .justify_between()
                                     .child(Label::new(user_login))
-                                    .when(!has_organization, |parent| {
-                                        parent.child(PlanChip::new(plan.unwrap_or(Plan::ZedFree)))
-                                    })
                                     .into_any_element()
                             },
                             move |_, cx| {
@@ -1125,9 +1111,8 @@ impl TitleBar {
                     .when(has_organization, |this| {
                         let mut this = this.header("Organization");
 
-                        for (organization, plan) in &organizations {
+                        for organization in &organizations {
                             let organization = organization.clone();
-                            let plan = *plan;
 
                             let is_current =
                                 current_organization
@@ -1155,7 +1140,6 @@ impl TitleBar {
                                                         )
                                                     }),
                                             )
-                                            .children(plan.map(|plan| PlanChip::new(plan)))
                                             .into_any_element()
                                     }
                                 },

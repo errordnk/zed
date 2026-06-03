@@ -11249,7 +11249,6 @@ dependencies = [
  "auto_update",
  "chrono",
  "client",
- "cloud_api_types",
  "db",
  "fs",
  "gpui",
