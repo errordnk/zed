@@ -19,7 +19,6 @@ use util::ResultExt;
 use util::path_list::PathList;
 use zed_actions::agents_sidebar::ToggleThreadSwitcher;
 
-use agent_settings::AgentSettings;
 use settings::SidebarDockPosition;
 use ui::{ContextMenu, right_click_menu};
 
@@ -66,7 +65,7 @@ pub fn sidebar_side_context_menu(
     id: impl Into<ElementId>,
     cx: &App,
 ) -> ui::RightClickMenu<ContextMenu> {
-    let current_position = AgentSettings::get_global(cx).sidebar_side;
+    let current_position = SidebarDockPosition::Right;
     right_click_menu(id).menu(move |window, cx| {
         let fs = <dyn fs::Fs>::global(cx);
         ContextMenu::build(window, cx, move |mut menu, _, _cx| {
@@ -324,9 +323,7 @@ impl MultiWorkspace {
         });
         let quit_subscription = cx.on_app_quit(Self::app_will_quit);
         let settings_subscription = cx.observe_global_in::<settings::SettingsStore>(window, {
-            let mut previous_multi_workspace_enabled = !DisableAiSettings::get_global(cx)
-                .disable_ai
-                && AgentSettings::get_global(cx).enabled;
+            let mut previous_multi_workspace_enabled = false;
             move |this, window, cx| {
                 let multi_workspace_enabled = this.multi_workspace_enabled(cx);
                 if previous_multi_workspace_enabled && !multi_workspace_enabled {

@@ -9,7 +9,6 @@ use crate::{branch_picker, picker_prompt, render_remote_button};
 use crate::{
     git_panel_settings::GitPanelSettings, git_status_icon, repository_selector::RepositorySelector,
 };
-use agent_settings::{AgentSettings, UserAgentsMd};
 use alacritty_terminal::vte::ansi;
 use anyhow::Context as _;
 use askpass::AskPassDelegate;
@@ -814,14 +813,6 @@ impl GitPanel {
 
             let scroll_handle = UniformListScrollHandle::new();
 
-            let mut was_ai_enabled = AgentSettings::get_global(cx).enabled(cx);
-            let _settings_subscription = cx.observe_global::<SettingsStore>(move |_, cx| {
-                let is_ai_enabled = AgentSettings::get_global(cx).enabled(cx);
-                if was_ai_enabled != is_ai_enabled {
-                    was_ai_enabled = is_ai_enabled;
-                    cx.notify();
-                }
-            });
 
             cx.subscribe_in(
                 &git_store,
@@ -2721,7 +2712,7 @@ impl GitPanel {
 
     /// Generates a commit message using an LLM.
     pub fn generate_commit_message(&mut self, cx: &mut Context<Self>) {
-        if !self.can_commit() || !AgentSettings::get_global(cx).enabled(cx) {
+        if !self.can_commit() {
             return;
         }
 
@@ -2745,7 +2736,7 @@ impl GitPanel {
             }
         });
 
-        let temperature = AgentSettings::temperature_for_model(&model, cx);
+        let temperature = None;
         let project = self.project.clone();
         let repo_work_dir = repo.read(cx).work_directory_abs_path.clone();
 
@@ -2784,10 +2775,7 @@ impl GitPanel {
 
                 let rules_content =
                     Self::load_project_rules(&project, &repo_work_dir, &mut cx).await;
-                let user_agents_md = cx.update(|cx| {
-                    UserAgentsMd::global(cx)
-                        .and_then(|user_agents_md| user_agents_md.content().cloned())
-                });
+                let user_agents_md: Result<Option<String>, _> = Ok(None);
 
                 let prompt = include_str!("../src/commit_message_prompt.txt");
 
@@ -4236,9 +4224,7 @@ impl GitPanel {
         &self,
         cx: &Context<Self>,
     ) -> Option<AnyElement> {
-        if !agent_settings::AgentSettings::get_global(cx).enabled(cx) {
-            return None;
-        }
+        return None;
 
         if self.generate_commit_message_task.is_some() {
             return Some(

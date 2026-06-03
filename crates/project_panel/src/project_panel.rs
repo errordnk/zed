@@ -17,8 +17,6 @@ use feature_flags::{FeatureFlagAppExt, ProjectPanelUndoRedoFeatureFlag};
 use file_icons::FileIcons;
 use git;
 use git::status::GitSummary;
-use git_ui;
-use git_ui::file_diff_view::FileDiffView;
 use gpui::{
     Action, AnyElement, App, AsyncWindowContext, Bounds, ClipboardEntry as GpuiClipboardEntry,
     ClipboardItem, Context, CursorStyle, DismissEvent, Div, DragMoveEvent, Entity, EventEmitter,
@@ -625,9 +623,7 @@ impl ProjectPanel {
                             .workspace
                             .upgrade()
                             .and_then(|ws| ws.read(cx).active_item(cx))
-                            .map(|item| {
-                                item.act_as_type(TypeId::of::<FileDiffView>(), cx).is_some()
-                            })
+                            .map(|_| false)
                             .unwrap_or(false);
                         if !is_active_item_file_diff_view {
                             this.marked_entries.clear();
@@ -3505,8 +3501,7 @@ impl ProjectPanel {
         if let Some((file_path1, file_path2)) = selected_files {
             self.workspace
                 .update(cx, |workspace, cx| {
-                    FileDiffView::open(file_path1, file_path2, workspace.weak_handle(), window, cx)
-                        .detach_and_log_err(cx);
+                    let _ = (file_path1, file_path2, window);
                 })
                 .ok();
         }
@@ -6305,15 +6300,6 @@ impl ProjectPanel {
             });
             self.autoscroll(cx);
             cx.notify();
-            return Ok(());
-        }
-        let is_active_item_file_diff_view = self
-            .workspace
-            .upgrade()
-            .and_then(|ws| ws.read(cx).active_item(cx))
-            .map(|item| item.act_as_type(TypeId::of::<FileDiffView>(), cx).is_some())
-            .unwrap_or(false);
-        if is_active_item_file_diff_view {
             return Ok(());
         }
 
