@@ -7,9 +7,8 @@ use gpui::{
     Window, WindowId, actions, deferred, px,
 };
 pub use project::ProjectGroupKey;
-use project::{DisableAiSettings, Project};
+use project::Project;
 use remote::RemoteConnectionOptions;
-use settings::Settings;
 pub use settings::SidebarSide;
 use std::future::Future;
 
@@ -63,7 +62,7 @@ pub struct SidebarRenderState {
 
 pub fn sidebar_side_context_menu(
     id: impl Into<ElementId>,
-    cx: &App,
+    _cx: &App,
 ) -> ui::RightClickMenu<ContextMenu> {
     let current_position = SidebarDockPosition::Right;
     right_click_menu(id).menu(move |window, cx| {

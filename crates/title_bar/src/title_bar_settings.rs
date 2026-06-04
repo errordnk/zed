@@ -2,6 +2,7 @@ use gpui::WindowButtonLayout;
 use settings::{RegisterSetting, Settings, SettingsContent};
 
 #[derive(Copy, Clone, Debug, RegisterSetting)]
+#[allow(dead_code)]
 pub struct TitleBarSettings {
     pub show_branch_status_icon: bool,
     pub show_onboarding_banner: bool,

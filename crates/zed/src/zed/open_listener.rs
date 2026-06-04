@@ -19,7 +19,6 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
-use ui::SharedString;
 use util::ResultExt;
 use util::debug_panic;
 use util::paths::PathWithPosition;
@@ -349,8 +348,8 @@ fn connect_to_cli(
 
 pub async fn open_paths_with_positions(
     path_positions: &[PathWithPosition],
-    diff_paths: &[[String; 2]],
-    diff_all: bool,
+    _diff_paths: &[[String; 2]],
+    _diff_all: bool,
     app_state: Arc<AppState>,
     open_options: workspace::OpenOptions,
     cx: &mut AsyncApp,

@@ -1,13 +1,12 @@
 use crate::{
-    CloseWindow, NewCenterTerminal, NewFile, NewTerminal, OpenInTerminal, OpenOptions,
-    OpenTerminal, OpenVisible, SplitDirection, ToggleFileFinder, ToggleProjectSymbols, ToggleZoom,
+    OpenOptions, OpenVisible, SplitDirection, ToggleZoom,
     Workspace, WorkspaceItemBuilder, ZoomIn, ZoomOut,
     focus_follows_mouse::FocusFollowsMouse as _,
     invalid_item_view::InvalidItemView,
     item::{
         ActivateOnClose, ClosePosition, Item, ItemBufferKind, ItemHandle, ItemSettings,
         PreviewTabsSettings, ProjectItemKind, SaveOptions, ShowCloseButton, ShowDiagnostics,
-        TabContentParams, TabTooltipContent, WeakItemHandle,
+        TabContentParams, WeakItemHandle,
     },
     move_item,
     notifications::NotifyResultExt,
@@ -18,7 +17,7 @@ use anyhow::Result;
 use collections::{BTreeSet, HashMap, HashSet, VecDeque};
 use futures::{StreamExt, stream::FuturesUnordered};
 use gpui::{
-    Action, Anchor, AnyElement, App, AsyncWindowContext, ClickEvent, ClipboardItem, Context, Div,
+    Action, Anchor, AnyElement, App, AsyncWindowContext, ClickEvent, Context, Div,
     DragMoveEvent, Entity, EntityId, EventEmitter, ExternalPaths, FocusHandle, FocusOutEvent,
     Focusable, KeyContext, MouseButton, NavigationDirection, Pixels, Point, PromptLevel, Render,
     ScrollHandle, Subscription, Task, TaskExt, WeakEntity, WeakFocusHandle, Window, actions,
@@ -45,9 +44,9 @@ use std::{
 };
 use theme_settings::ThemeSettings;
 use ui::{
-    ContextMenu, ContextMenuEntry, ContextMenuItem, DecoratedIcon, IconButtonShape, IconDecoration,
-    IconDecorationKind, Indicator, PopoverMenu, PopoverMenuHandle, Tab, TabBar, TabPosition,
-    Tooltip, prelude::*, right_click_menu,
+    ContextMenu, DecoratedIcon, IconButtonShape, IconDecoration,
+    IconDecorationKind, Indicator, PopoverMenuHandle, Tab, TabBar, TabPosition,
+    Tooltip, prelude::*,
 };
 use util::{
     ResultExt, debug_panic, maybe, paths::PathStyle, serde::default_true, truncate_and_remove_front,
@@ -2635,22 +2634,6 @@ impl Pane {
         });
     }
 
-    fn entry_abs_path(&self, entry: ProjectEntryId, cx: &App) -> Option<PathBuf> {
-        let worktree = self
-            .workspace
-            .upgrade()?
-            .read(cx)
-            .project()
-            .read(cx)
-            .worktree_for_entry(entry, cx)?
-            .read(cx);
-        let entry = worktree.entry_for_id(entry)?;
-        Some(match &entry.canonical_path {
-            Some(canonical_path) => canonical_path.to_path_buf(),
-            None => worktree.absolutize(&entry.path),
-        })
-    }
-
     pub fn icon_color(selected: bool) -> Color {
         if selected {
             Color::Default
@@ -2852,7 +2835,7 @@ impl Pane {
         let close_side = &settings.close_position;
         let show_close_button = &settings.show_close_button;
         let indicator = render_item_indicator(item.boxed_clone(), cx);
-        let tab_tooltip_content = item.tab_tooltip_content(cx);
+        let _tab_tooltip_content = item.tab_tooltip_content(cx);
         let item_id = item.item_id();
         let is_first_item = ix == 0;
         let is_last_item = ix == self.items.len() - 1;
@@ -3052,17 +3035,17 @@ impl Pane {
                     }),
             );
 
-        let single_entry_to_resolve = (self.items[ix].buffer_kind(cx) == ItemBufferKind::Singleton)
+        let _single_entry_to_resolve = (self.items[ix].buffer_kind(cx) == ItemBufferKind::Singleton)
             .then(|| self.items[ix].project_entry_ids(cx).get(0).copied())
             .flatten();
 
         let total_items = self.items.len();
-        let has_multibuffer_items = self
+        let _has_multibuffer_items = self
             .items
             .iter()
             .any(|item| item.buffer_kind(cx) == ItemBufferKind::Multibuffer);
-        let has_items_to_left = ix > 0;
-        let has_items_to_right = ix < total_items - 1;
+        let _has_items_to_left = ix > 0;
+        let _has_items_to_right = ix < total_items - 1;
         let has_clean_items = self.items.iter().any(|item| !item.is_dirty(cx));
         let is_pinned = self.is_tab_pinned(ix);
 
@@ -3180,8 +3163,8 @@ impl Pane {
     fn configure_tab_bar_start(
         &mut self,
         tab_bar: TabBar,
-        navigate_backward: IconButton,
-        navigate_forward: IconButton,
+        _navigate_backward: IconButton,
+        _navigate_forward: IconButton,
         window: &mut Window,
         cx: &mut Context<Pane>,
     ) -> TabBar {

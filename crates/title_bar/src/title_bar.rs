@@ -17,16 +17,13 @@ use crate::application_menu::{
     ActivateDirection, ActivateMenuLeft, ActivateMenuRight, OpenApplicationMenu,
 };
 
-use auto_update::AutoUpdateStatus;
 use client::{Client, UserStore, zed_urls};
 
 use gpui::{
-    Action, Anchor, Animation, AnimationExt, AnyElement, App, Context, Element, Entity, Focusable,
+    Action, Anchor, AnyElement, App, Context, Element, Entity, Focusable,
     InteractiveElement, IntoElement, MouseButton, ParentElement, Render,
-    StatefulInteractiveElement, Styled, Subscription, TaskExt, WeakEntity, Window, actions, div,
-    pulsating_between,
+    Styled, Subscription, WeakEntity, Window, actions, div,
 };
-use onboarding_banner::OnboardingBanner;
 use project::{
     Project, project_settings::ProjectSettings,
     trusted_worktrees::TrustedWorktrees,
@@ -35,12 +32,11 @@ use remote::RemoteConnectionOptions;
 use settings::Settings as _;
 
 use std::sync::Arc;
-use std::time::Duration;
 use theme::ActiveTheme;
 use title_bar_settings::TitleBarSettings;
 use ui::{
-    Avatar, ButtonLike, ContextMenu, ContextMenuEntry, IconWithIndicator, Indicator, PopoverMenu,
-    PopoverMenuHandle, TintColor, Tooltip, prelude::*, utils::platform_title_bar_height,
+    Avatar, ButtonLike, ContextMenu, IconWithIndicator, Indicator, PopoverMenu,
+    TintColor, Tooltip, prelude::*, utils::platform_title_bar_height,
 };
 use update_version::UpdateVersion;
 use util::ResultExt;
@@ -151,9 +147,7 @@ pub struct TitleBar {
     multi_workspace: Option<WeakEntity<MultiWorkspace>>,
     application_menu: Option<Entity<ApplicationMenu>>,
     _subscriptions: Vec<Subscription>,
-    banner: Option<Entity<OnboardingBanner>>,
     update_version: Entity<UpdateVersion>,
-    screen_share_popover_handle: PopoverMenuHandle<ContextMenu>,
     _diagnostics_subscription: Option<gpui::Subscription>,
 }
 
@@ -237,7 +231,7 @@ impl Render for TitleBar {
                 .h_full()
                 .gap_0p5()
                 .map(|title_bar| {
-                    let mut render_project_items = title_bar_settings.show_branch_name
+                    let _render_project_items = title_bar_settings.show_branch_name
                         || title_bar_settings.show_project_items;
                     title_bar
                         .children(self.render_restricted_mode(cx))
@@ -371,8 +365,6 @@ impl TitleBar {
             titlebar
         });
 
-        let banner = None;
-
         let mut this = Self {
             platform_titlebar,
             application_menu,
@@ -382,9 +374,7 @@ impl TitleBar {
             user_store,
             client,
             _subscriptions: subscriptions,
-            banner,
             update_version,
-            screen_share_popover_handle: PopoverMenuHandle::default(),
             _diagnostics_subscription: None,
         };
 
@@ -494,9 +484,9 @@ impl TitleBar {
 
         Some(
             PopoverMenu::new("remote-project-menu")
-                .menu(move |window, cx| {
+                .menu(move |_window, cx| {
                     let workspace_entity = workspace.upgrade()?;
-                    let fs = workspace_entity.read(cx).project().read(cx).fs().clone();
+                    let _fs = workspace_entity.read(cx).project().read(cx).fs().clone();
                     None::<gpui::Entity<ui::ContextMenu>>
                 })
                 .trigger_with_tooltip(
@@ -663,12 +653,12 @@ impl TitleBar {
                 .into_any_element();
         }
 
-        let focus_handle = workspace
+        let _focus_handle = workspace
             .upgrade()
             .map(|w| w.read(cx).focus_handle(cx))
             .unwrap_or_else(|| cx.focus_handle());
 
-        let window_project_groups: Vec<_> = self
+        let _window_project_groups: Vec<_> = self
             .multi_workspace
             .as_ref()
             .and_then(|mw| mw.upgrade())
@@ -713,12 +703,12 @@ impl TitleBar {
     ) -> impl IntoElement {
         let workspace = self.workspace.clone();
 
-        let focus_handle = workspace
+        let _focus_handle = workspace
             .upgrade()
             .map(|w| w.read(cx).focus_handle(cx))
             .unwrap_or_else(|| cx.focus_handle());
 
-        let window_project_groups: Vec<_> = self
+        let _window_project_groups: Vec<_> = self
             .multi_workspace
             .as_ref()
             .and_then(|mw| mw.upgrade())
@@ -760,7 +750,7 @@ impl TitleBar {
         linked_worktree_name: Option<SharedString>,
         cx: &mut Context<Self>,
     ) -> Option<AnyElement> {
-        let workspace = self.workspace.upgrade()?;
+        let _workspace = self.workspace.upgrade()?;
 
         let (branch_name, icon_info, is_detached_head) = {
             let repo = repository.read(cx);
@@ -800,7 +790,7 @@ impl TitleBar {
         };
 
         let settings = TitleBarSettings::get_global(cx);
-        let effective_repository = Some(repository);
+        let _effective_repository = Some(repository);
 
         let worktree_label: SharedString = linked_worktree_name.unwrap_or_else(|| "main".into());
 
@@ -930,58 +920,6 @@ impl TitleBar {
 
     fn observe_diagnostics(&mut self, _cx: &mut Context<Self>) {}
 
-    fn share_project(&mut self, _cx: &mut Context<Self>) {}
-
-    fn unshare_project(&mut self, _: &mut Window, _cx: &mut Context<Self>) {}
-
-    fn render_connection_status(
-        &self,
-        status: &client::Status,
-        cx: &mut Context<Self>,
-    ) -> Option<AnyElement> {
-        match status {
-            client::Status::ConnectionError
-            | client::Status::ConnectionLost
-            | client::Status::Reauthenticating
-            | client::Status::Reconnecting
-            | client::Status::ReconnectionError { .. } => Some(
-                div()
-                    .id("disconnected")
-                    .child(Icon::new(IconName::Disconnected).size(IconSize::Small))
-                    .tooltip(Tooltip::text("Disconnected"))
-                    .into_any_element(),
-            ),
-            client::Status::UpgradeRequired => {
-                let auto_updater = auto_update::AutoUpdater::get(cx);
-                let label = match auto_updater.map(|auto_update| auto_update.read(cx).status()) {
-                    Some(AutoUpdateStatus::Updated { .. }) => "Please restart Zed to Collaborate",
-                    Some(AutoUpdateStatus::Installing { .. })
-                    | Some(AutoUpdateStatus::Downloading { .. })
-                    | Some(AutoUpdateStatus::Checking) => "Updating...",
-                    Some(AutoUpdateStatus::Idle)
-                    | Some(AutoUpdateStatus::Errored { .. })
-                    | None => "Please update Zed to Collaborate",
-                };
-
-                Some(
-                    Button::new("connection-status", label)
-                        .label_size(LabelSize::Small)
-                        .on_click(|_, window, cx| {
-                            if let Some(auto_updater) = auto_update::AutoUpdater::get(cx)
-                                && auto_updater.read(cx).status().is_updated()
-                            {
-                                workspace::reload(cx);
-                                return;
-                            }
-                            auto_update::check(&Default::default(), window, cx);
-                        })
-                        .into_any_element(),
-                )
-            }
-            _ => None,
-        }
-    }
-
     pub fn render_sign_in_button(&mut self, _: &mut Context<Self>) -> Button {
         let client = self.client.clone();
         let workspace = self.workspace.clone();
@@ -1014,7 +952,7 @@ impl TitleBar {
 
         let is_signed_in = user.is_some();
 
-        let has_subscription_period = user_store_read.subscription_period().is_some();
+        let _has_subscription_period = user_store_read.subscription_period().is_some();
         let has_organization = user_store_read.current_organization().is_some();
 
         let current_organization = user_store_read.current_organization();
@@ -1066,7 +1004,7 @@ impl TitleBar {
                 let user_store = user_store.clone();
                 let workspace = workspace.clone();
 
-                let fs = <dyn fs::Fs>::global(cx);
+                let _fs = <dyn fs::Fs>::global(cx);
 
                 ContextMenu::build(window, cx, |menu, _, _cx| {
                     menu.when(is_signed_in, |this| {

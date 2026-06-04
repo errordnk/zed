@@ -110,8 +110,8 @@ impl Render for QuickActionBar {
             && editor_value.diagnostics_max_severity != DiagnosticSeverity::Off;
         let supports_inline_diagnostics = editor_value.inline_diagnostics_enabled();
         let inline_diagnostics_enabled = editor_value.show_inline_diagnostics();
-        let git_blame_inline_enabled = editor_value.git_blame_inline_enabled();
-        let show_git_blame_gutter = editor_value.show_git_blame_gutter();
+        let _git_blame_inline_enabled = editor_value.git_blame_inline_enabled();
+        let _show_git_blame_gutter = editor_value.show_git_blame_gutter();
         let auto_signature_help_enabled = editor_value.auto_signature_help_enabled(cx);
         let show_line_numbers = editor_value.line_numbers_enabled(cx);
         let has_edit_prediction_provider = editor_value.edit_prediction_provider().is_some();
@@ -218,13 +218,13 @@ impl Render for QuickActionBar {
                 .read(cx)
                 .snapshot(cx)
                 .has_diff_hunks();
-            let has_selection = editor.update(cx, |editor, cx| {
+            let _has_selection = editor.update(cx, |editor, cx| {
                 editor.has_non_empty_selection(&editor.display_snapshot(cx))
             });
 
             let focus = editor.focus_handle(cx);
 
-            let disable_ai = DisableAiSettings::get_global(cx).disable_ai;
+            let _disable_ai = DisableAiSettings::get_global(cx).disable_ai;
 
             PopoverMenu::new("editor-selections-dropdown")
                 .trigger_with_tooltip(

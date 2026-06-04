@@ -20,10 +20,10 @@ use client::{Client, ProxySettings, UserStore, parse_zed_link};
 use collections::HashMap;
 use db::kvp::{GlobalKeyValueStore, KeyValueStore};
 use fs::{Fs, RealFs};
-use futures::{StreamExt, channel::oneshot};
+use futures::StreamExt;
 use gpui::{
     App, AppContext, Application, AsyncApp, QuitMode, Task, TaskExt,
-    UpdateGlobal as _, block_on,
+    UpdateGlobal as _,
 };
 use gpui_platform;
 
@@ -32,7 +32,7 @@ use reqwest_client::ReqwestClient;
 
 use assets::Assets;
 use parking_lot::Mutex;
-use project::{project_settings::ProjectSettings, trusted_worktrees};
+use project::trusted_worktrees;
 use release_channel::{AppCommitSha, AppVersion, ReleaseChannel};
 use session::{AppSession, Session};
 use settings::{Settings, SettingsStore, watch_config_file};
@@ -44,7 +44,7 @@ use std::{
     sync::{Arc, LazyLock, OnceLock},
     time::Instant,
 };
-use theme::{ActiveTheme, GlobalTheme, ThemeRegistry};
+use theme::{ActiveTheme, ThemeRegistry};
 use theme_settings::load_user_theme;
 use util::ResultExt;
 use uuid::Uuid;
@@ -365,7 +365,7 @@ fn main() {
         session_id.clone(),
         KeyValueStore::from_app_db(&app_db),
     ));
-    let background_executor = app.background_executor();
+    let _background_executor = app.background_executor();
 
     let (open_listener, mut open_rx) = OpenListener::new();
 
@@ -395,7 +395,7 @@ fn main() {
         return;
     }
 
-    let crash_handler: Option<futures::future::Ready<()>> = None;
+    let _crash_handler: Option<futures::future::Ready<()>> = None;
 
     let fs = Arc::new(RealFs::new(None, app.background_executor()));
     let (user_keymap_file_rx, user_keymap_watcher) = watch_config_file(
@@ -487,8 +487,8 @@ fn main() {
         client::init(&client, cx);
         feature_flags::FeatureFlagStore::init(cx);
 
-        let system_id = cx.foreground_executor().block_on(system_id).ok();
-        let installation_id = cx.foreground_executor().block_on(installation_id).ok();
+        let _system_id = cx.foreground_executor().block_on(system_id).ok();
+        let _installation_id = cx.foreground_executor().block_on(installation_id).ok();
         let session = cx.foreground_executor().block_on(session);
 
         let app_session = cx.new(|cx| AppSession::new(session, cx));

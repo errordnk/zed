@@ -4180,17 +4180,6 @@ impl Workspace {
         })
     }
 
-    fn close_active_dock(&mut self, window: &mut Window, cx: &mut Context<Self>) -> bool {
-        if let Some(dock) = self.active_dock(window, cx).cloned() {
-            self.save_open_dock_positions(cx);
-            dock.update(cx, |dock, cx| {
-                dock.set_open(false, window, cx);
-            });
-            return true;
-        }
-        false
-    }
-
     pub fn close_all_docks(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.save_open_dock_positions(cx);
         for dock in self.all_docks() {
@@ -4233,6 +4222,7 @@ impl Workspace {
     ///
     /// If any docks are open, closes all and remembers their positions. If all
     /// docks are closed, restores the last remembered dock configuration.
+    #[cfg(test)]
     fn toggle_all_docks(
         &mut self,
         _: &ToggleAllDocks,
@@ -4252,6 +4242,7 @@ impl Workspace {
     ///
     /// Opens all docks whose positions are stored in `last_open_dock_positions`
     /// and clears the stored positions.
+    #[cfg(test)]
     fn restore_last_open_docks(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let positions_to_open = std::mem::take(&mut self.last_open_dock_positions);
 
@@ -7756,80 +7747,7 @@ impl Workspace {
     ) -> Option<Div> {
         // Hide all docks — terminal lives in the center pane
         let _ = (position, dock, window, cx);
-        return None;
-        self.render_dock_orig(position, dock, window, cx)
-    }
-
-    fn render_dock_orig(
-        &self,
-        position: DockPosition,
-        dock: &Entity<Dock>,
-        window: &mut Window,
-        cx: &mut App,
-    ) -> Option<Div> {
-        if self.zoomed_position == Some(position) {
-            return None;
-        }
-
-        let leader_border = dock.read(cx).active_panel().and_then(|panel| {
-            let pane = panel.pane(cx)?;
-            let follower_states = &self.follower_states;
-            leader_border_for_pane(follower_states, &pane, window, cx)
-        });
-
-        let mut container = div()
-            .flex()
-            .overflow_hidden()
-            .flex_none()
-            .child(dock.clone())
-            .children(leader_border);
-
-        // Apply sizing only when the dock is open. When closed the dock is still
-        // included in the element tree so its focus handle remains mounted — without
-        // this, toggle_panel_focus cannot focus the panel when the dock is closed.
-        let dock = dock.read(cx);
-        if let Some(panel) = dock.visible_panel() {
-            let size_state = dock.stored_panel_size_state(panel.as_ref());
-            let min_size = panel.min_size(window, cx);
-            if position.axis() == Axis::Horizontal {
-                let use_flexible = panel.has_flexible_size(window, cx);
-                let flex_grow = if use_flexible {
-                    size_state
-                        .and_then(|state| state.flex)
-                        .or_else(|| self.default_dock_flex(position))
-                } else {
-                    None
-                };
-                if let Some(grow) = flex_grow {
-                    let grow = (grow / self.center_full_height_column_count()).max(0.001);
-                    let style = container.style();
-                    style.flex_grow = Some(grow);
-                    style.flex_shrink = Some(1.0);
-                    style.flex_basis = Some(relative(0.).into());
-                } else {
-                    let size = size_state
-                        .and_then(|state| state.size)
-                        .unwrap_or_else(|| panel.default_size(window, cx));
-                    container = container.w(size);
-                    // Allow the fixed-width dock to shrink when there isn't
-                    // enough space (e.g. when the sidebar is open). The
-                    // stored size is preserved so the dock expands back
-                    // when space becomes available.
-                    let style = container.style();
-                    style.flex_shrink = Some(1.0);
-                }
-                if let Some(min) = min_size {
-                    container = container.min_w(min);
-                }
-            } else {
-                let size = size_state
-                    .and_then(|state| state.size)
-                    .unwrap_or_else(|| panel.default_size(window, cx));
-                container = container.h(size);
-            }
-        }
-
-        Some(container)
+        None
     }
 
     pub fn for_window(window: &Window, cx: &App) -> Option<Entity<Workspace>> {
@@ -8144,45 +8062,6 @@ pub enum ActiveCallEvent {
     LocalScreenShareStarted,
     LocalScreenShareStopped,
     RoomLeft,
-}
-
-fn leader_border_for_pane(
-    follower_states: &HashMap<CollaboratorId, FollowerState>,
-    pane: &Entity<Pane>,
-    _: &Window,
-    cx: &App,
-) -> Option<Div> {
-    let (leader_id, _follower_state) = follower_states.iter().find_map(|(leader_id, state)| {
-        if state.pane() == pane {
-            Some((*leader_id, state))
-        } else {
-            None
-        }
-    })?;
-
-    let mut leader_color = match leader_id {
-        CollaboratorId::PeerId(leader_peer_id) => {
-            let leader = GlobalAnyActiveCall::try_global(cx)?
-                .0
-                .remote_participant_for_peer_id(leader_peer_id, cx)?;
-
-            cx.theme()
-                .players()
-                .color_for_participant(leader.participant_index.0)
-                .cursor
-        }
-        CollaboratorId::Agent => cx.theme().players().agent().cursor,
-    };
-    leader_color.fade_out(0.3);
-    Some(
-        div()
-            .absolute()
-            .size_full()
-            .left_0()
-            .top_0()
-            .border_2()
-            .border_color(leader_color),
-    )
 }
 
 fn window_bounds_env_override() -> Option<Bounds<Pixels>> {
