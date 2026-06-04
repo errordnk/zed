@@ -64,7 +64,6 @@ paths.workspace = true
 picker.workspace = true
 profiling.workspace = true
 project.workspace = true
-project_panel.workspace = true
 rayon.workspace = true
 release_channel.workspace = true
 remote.workspace = true
@@ -133,7 +132,6 @@ pkg-config = "0.3.22"
 
 [dev-dependencies]
 gpui = { workspace = true, features = ["input-latency-histogram", "test-support"] }
-project_panel = { workspace = true }
 project = { workspace = true, features = ["test-support"] }
 terminal_view = { workspace = true, features = ["test-support"] }
 workspace = { workspace = true, features = ["test-support"] }
