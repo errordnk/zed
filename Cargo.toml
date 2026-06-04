@@ -162,7 +162,6 @@ json_schema_store = { path = "crates/json_schema_store" }
 language = { path = "crates/language" }
 language_core = { path = "crates/language_core" }
 language_extension = { path = "crates/language_extension" }
-language_model = { path = "crates/language_model" }
 language_model_core = { path = "crates/language_model_core" }
 lsp = { path = "crates/lsp" }
 markdown = { path = "crates/markdown" }
