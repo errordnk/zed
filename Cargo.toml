@@ -106,7 +106,6 @@ activity_indicator = { path = "crates/activity_indicator" }
 askpass = { path = "crates/askpass" }
 assets = { path = "crates/assets" }
 auto_update = { path = "crates/auto_update" }
-breadcrumbs = { path = "crates/breadcrumbs" }
 buffer_diff = { path = "crates/buffer_diff" }
 channel = { path = "crates/channel" }
 cli = { path = "crates/cli" }

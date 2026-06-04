@@ -100,7 +100,6 @@ pub use editor_settings::{
 };
 pub use element::{
     CursorLayout, EditorElement, HighlightedRange, HighlightedRangeLine, PointForPosition,
-    render_breadcrumb_text,
 };
 pub use git::blame::BlameRenderer;
 pub(crate) use git::{DiffHunkKey, StoredReviewComment};
@@ -345,7 +344,6 @@ impl Navigated {
 
 pub fn init(cx: &mut App) {
     cx.set_global(GlobalBlameRenderer(Arc::new(())));
-    cx.set_global(breadcrumbs::RenderBreadcrumbText(render_breadcrumb_text));
 
     workspace::register_project_item::<Editor>(cx);
     workspace::FollowableViewRegistry::register::<Editor>(cx);

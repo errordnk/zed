@@ -1016,15 +1016,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "breadcrumbs"
-version = "0.1.0"
-dependencies = [
- "gpui",
- "ui",
- "workspace",
-]
-
-[[package]]
 name = "bstr"
 version = "1.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2766,7 +2757,6 @@ dependencies = [
  "anyhow",
  "assets",
  "base64 0.22.1",
- "breadcrumbs",
  "buffer_diff",
  "client",
  "clock",
@@ -10090,7 +10080,6 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-recursion",
- "breadcrumbs",
  "collections",
  "db",
  "dirs",

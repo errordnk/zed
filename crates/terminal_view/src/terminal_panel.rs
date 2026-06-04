@@ -6,7 +6,6 @@ use crate::{
         SerializedItems, SerializedTerminalPanel, deserialize_terminal_panel, serialize_pane_group,
     },
 };
-use breadcrumbs::Breadcrumbs;
 use collections::HashMap;
 use db::kvp::KeyValueStore;
 use futures::{channel::oneshot, future::join_all};
@@ -1257,10 +1256,6 @@ pub fn new_terminal_pane(
             let languages = Some(project.read(cx).languages().clone());
             (callbacks.setup_search_bar)(languages, &toolbar, window, cx);
         }
-        let breadcrumbs = cx.new(|_| Breadcrumbs::new());
-        toolbar.update(cx, |toolbar, cx| {
-            toolbar.add_item(breadcrumbs, window, cx);
-        });
 
         pane
     });
