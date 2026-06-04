@@ -2081,356 +2081,40 @@ impl Editor {
             && a.hunk_start_anchor.to_point(snapshot) == b.hunk_start_anchor.to_point(snapshot)
     }
 
+
     fn render_diff_review_overlay(
-        prompt_editor: &Entity<Editor>,
-        hunk_key: &DiffHunkKey,
-        editor_handle: &WeakEntity<Editor>,
-        cx: &mut BlockContext,
+        _prompt_editor: &Entity<Editor>,
+        _hunk_key: &DiffHunkKey,
+        _editor_handle: &WeakEntity<Editor>,
+        _cx: &mut BlockContext,
     ) -> AnyElement {
-        fn format_line_ranges(ranges: &[(u32, u32)]) -> Option<String> {
-            if ranges.is_empty() {
-                return None;
-            }
-            let formatted: Vec<String> = ranges
-                .iter()
-                .map(|(start, end)| {
-                    let start_line = start + 1;
-                    let end_line = end + 1;
-                    if start_line == end_line {
-                        format!("Line {start_line}")
-                    } else {
-                        format!("Lines {start_line}-{end_line}")
-                    }
-                })
-                .collect();
-            // Don't show label for single line in single excerpt
-            if ranges.len() == 1 && ranges[0].0 == ranges[0].1 {
-                return None;
-            }
-            Some(formatted.join(" ⋯ "))
-        }
-
-        let theme = cx.theme();
-        let colors = theme.colors();
-
-        let (comments, comments_expanded, inline_editors, user_avatar_uri, line_ranges) =
-            editor_handle
-                .upgrade()
-                .map(|editor| {
-                    let editor = editor.read(cx);
-                    let snapshot = editor.buffer().read(cx).snapshot(cx);
-                    let comments = editor.comments_for_hunk(hunk_key, &snapshot).to_vec();
-                    let (expanded, editors, avatar_uri, line_ranges) = editor
-                        .diff_review_overlays
-                        .iter()
-                        .find(|overlay| {
-                            Editor::hunk_keys_match(&overlay.hunk_key, hunk_key, &snapshot)
-                        })
-                        .map(|o| {
-                            let start_point = o.anchor_range.start.to_point(&snapshot);
-                            let end_point = o.anchor_range.end.to_point(&snapshot);
-                            // Get line ranges per excerpt to detect discontinuities
-                            let buffer_ranges =
-                                snapshot.range_to_buffer_ranges(start_point..end_point);
-                            let ranges: Vec<(u32, u32)> = buffer_ranges
-                                .iter()
-                                .map(|(buffer_snapshot, range, _)| {
-                                    let start = buffer_snapshot.offset_to_point(range.start.0).row;
-                                    let end = buffer_snapshot.offset_to_point(range.end.0).row;
-                                    (start, end)
-                                })
-                                .collect();
-                            (
-                                o.comments_expanded,
-                                o.inline_edit_editors.clone(),
-                                o.user_avatar_uri.clone(),
-                                if ranges.is_empty() {
-                                    None
-                                } else {
-                                    Some(ranges)
-                                },
-                            )
-                        })
-                        .unwrap_or((true, HashMap::default(), None, None));
-                    (comments, expanded, editors, avatar_uri, line_ranges)
-                })
-                .unwrap_or((Vec::new(), true, HashMap::default(), None, None));
-
-        let comment_count = comments.len();
-        let avatar_size = px(20.);
-        let action_icon_size = IconSize::XSmall;
-
-        v_flex()
-            .w_full()
-            .bg(colors.editor_background)
-            .border_b_1()
-            .border_color(colors.border)
-            .px_2()
-            .pb_2()
-            .gap_2()
-            // Line range indicator (only shown for multi-line selections or multiple excerpts)
-            .when_some(line_ranges, |el, ranges| {
-                let label = format_line_ranges(&ranges);
-                if let Some(label) = label {
-                    el.child(
-                        h_flex()
-                            .w_full()
-                            .px_2()
-                            .child(Label::new(label).size(LabelSize::Small).color(Color::Muted)),
-                    )
-                } else {
-                    el
-                }
-            })
-            // Top row: editable input with user's avatar
-            .child(
-                h_flex()
-                    .w_full()
-                    .items_center()
-                    .gap_2()
-                    .px_2()
-                    .py_1p5()
-                    .rounded_md()
-                    .bg(colors.surface_background)
-                    .child(
-                        div()
-                            .size(avatar_size)
-                            .flex_shrink_0()
-                            .rounded_full()
-                            .overflow_hidden()
-                            .child(if let Some(ref avatar_uri) = user_avatar_uri {
-                                Avatar::new(avatar_uri.clone())
-                                    .size(avatar_size)
-                                    .into_any_element()
-                            } else {
-                                Icon::new(IconName::Person)
-                                    .size(IconSize::Small)
-                                    .color(ui::Color::Muted)
-                                    .into_any_element()
-                            }),
-                    )
-                    .child(
-                        div()
-                            .flex_1()
-                            .border_1()
-                            .border_color(colors.border)
-                            .rounded_md()
-                            .bg(colors.editor_background)
-                            .px_2()
-                            .py_1()
-                            .child(prompt_editor.clone()),
-                    )
-                    .child(
-                        h_flex()
-                            .flex_shrink_0()
-                            .gap_1()
-                            .child(
-                                IconButton::new("diff-review-close", IconName::Close)
-                                    .icon_color(ui::Color::Muted)
-                                    .icon_size(action_icon_size)
-                                    .tooltip(Tooltip::text("Close"))
-                                    .on_click(|_, window, cx| {
-                                        window
-                                            .dispatch_action(Box::new(crate::actions::Cancel), cx);
-                                    }),
-                            )
-                            .child(
-                                IconButton::new("diff-review-add", IconName::Return)
-                                    .icon_color(ui::Color::Muted)
-                                    .icon_size(action_icon_size)
-                                    .tooltip(Tooltip::text("Add comment"))
-                                    .on_click(|_, window, cx| {
-                                        window.dispatch_action(
-                                            Box::new(crate::actions::SubmitDiffReviewComment),
-                                            cx,
-                                        );
-                                    }),
-                            ),
-                    ),
-            )
-            // Expandable comments section (only shown when there are comments)
-            .when(comment_count > 0, |el| {
-                el.child(Self::render_comments_section(
-                    comments,
-                    comments_expanded,
-                    inline_editors,
-                    user_avatar_uri,
-                    avatar_size,
-                    action_icon_size,
-                    colors,
-                ))
-            })
-            .into_any_element()
+        gpui::Empty.into_any_element()
     }
 
     fn render_comments_section(
-        comments: Vec<StoredReviewComment>,
-        expanded: bool,
-        inline_editors: HashMap<usize, Entity<Editor>>,
-        user_avatar_uri: Option<SharedUri>,
-        avatar_size: Pixels,
-        action_icon_size: IconSize,
-        colors: &theme::ThemeColors,
-    ) -> impl IntoElement {
-        let comment_count = comments.len();
-
-        v_flex()
-            .w_full()
-            .gap_1()
-            // Header with expand/collapse toggle
-            .child(
-                h_flex()
-                    .id("review-comments-header")
-                    .w_full()
-                    .items_center()
-                    .gap_1()
-                    .px_2()
-                    .py_1()
-                    .cursor_pointer()
-                    .rounded_md()
-                    .hover(|style| style.bg(colors.ghost_element_hover))
-                    .on_click(|_, window: &mut Window, cx| {
-                        window.dispatch_action(
-                            Box::new(crate::actions::ToggleReviewCommentsExpanded),
-                            cx,
-                        );
-                    })
-                    .child(
-                        Icon::new(if expanded {
-                            IconName::ChevronDown
-                        } else {
-                            IconName::ChevronRight
-                        })
-                        .size(IconSize::Small)
-                        .color(ui::Color::Muted),
-                    )
-                    .child(
-                        Label::new(format!(
-                            "{} Comment{}",
-                            comment_count,
-                            if comment_count == 1 { "" } else { "s" }
-                        ))
-                        .size(LabelSize::Small)
-                        .color(Color::Muted),
-                    ),
-            )
-            // Comments list (when expanded)
-            .when(expanded, |el| {
-                el.children(comments.into_iter().map(|comment| {
-                    let inline_editor = inline_editors.get(&comment.id).cloned();
-                    Self::render_comment_row(
-                        comment,
-                        inline_editor,
-                        user_avatar_uri.clone(),
-                        avatar_size,
-                        action_icon_size,
-                        colors,
-                    )
-                }))
-            })
+        _stored_comments: &[StoredReviewComment],
+        _editor_handle: &WeakEntity<Editor>,
+        _hunk_key: &DiffHunkKey,
+        _comments_expanded: bool,
+        _inline_edit_editors: &HashMap<usize, Entity<Editor>>,
+        _user_avatar_uri: Option<SharedUri>,
+        _cx: &mut BlockContext,
+    ) -> AnyElement {
+        gpui::Empty.into_any_element()
     }
 
     fn render_comment_row(
-        comment: StoredReviewComment,
-        inline_editor: Option<Entity<Editor>>,
-        user_avatar_uri: Option<SharedUri>,
-        avatar_size: Pixels,
-        action_icon_size: IconSize,
-        colors: &theme::ThemeColors,
-    ) -> impl IntoElement {
-        let comment_id = comment.id;
-        let is_editing = inline_editor.is_some();
-
-        h_flex()
-            .w_full()
-            .items_center()
-            .gap_2()
-            .px_2()
-            .py_1p5()
-            .rounded_md()
-            .bg(colors.surface_background)
-            .child(
-                div()
-                    .size(avatar_size)
-                    .flex_shrink_0()
-                    .rounded_full()
-                    .overflow_hidden()
-                    .child(if let Some(ref avatar_uri) = user_avatar_uri {
-                        Avatar::new(avatar_uri.clone())
-                            .size(avatar_size)
-                            .into_any_element()
-                    } else {
-                        Icon::new(IconName::Person)
-                            .size(IconSize::Small)
-                            .color(ui::Color::Muted)
-                            .into_any_element()
-                    }),
-            )
-            .child(if let Some(editor) = inline_editor {
-                // Inline edit mode: show an editable text field
-                div()
-                    .flex_1()
-                    .border_1()
-                    .border_color(colors.border)
-                    .rounded_md()
-                    .bg(colors.editor_background)
-                    .px_2()
-                    .py_1()
-                    .child(editor)
-                    .into_any_element()
-            } else {
-                // Display mode: show the comment text
-                div()
-                    .flex_1()
-                    .text_sm()
-                    .text_color(colors.text)
-                    .child(comment.comment)
-                    .into_any_element()
-            })
-            .child(if is_editing {
-                // Editing mode: show close and confirm buttons
-                h_flex()
-                    .gap_1()
-                    .child(
-                        IconButton::new(
-                            format!("diff-review-cancel-edit-{comment_id}"),
-                            IconName::Close,
-                        )
-                        .icon_color(ui::Color::Muted)
-                        .icon_size(action_icon_size)
-                        .tooltip(Tooltip::text("Cancel"))
-                        .on_click(move |_, window, cx| {
-                            window.dispatch_action(
-                                Box::new(crate::actions::CancelEditReviewComment {
-                                    id: comment_id,
-                                }),
-                                cx,
-                            );
-                        }),
-                    )
-                    .child(
-                        IconButton::new(
-                            format!("diff-review-confirm-edit-{comment_id}"),
-                            IconName::Return,
-                        )
-                        .icon_color(ui::Color::Muted)
-                        .icon_size(action_icon_size)
-                        .tooltip(Tooltip::text("Confirm"))
-                        .on_click(move |_, window, cx| {
-                            window.dispatch_action(
-                                Box::new(crate::actions::ConfirmEditReviewComment {
-                                    id: comment_id,
-                                }),
-                                cx,
-                            );
-                        }),
-                    )
-                    .into_any_element()
-            } else {
-                // Display mode: no action buttons for now (edit/delete not yet implemented)
-                gpui::Empty.into_any_element()
-            })
+        _comment: &StoredReviewComment,
+        _editor_handle: &WeakEntity<Editor>,
+        _hunk_key: &DiffHunkKey,
+        _is_editing: bool,
+        _inline_editor: Option<&Entity<Editor>>,
+        _user_avatar_uri: Option<SharedUri>,
+        _cx: &mut BlockContext,
+    ) -> AnyElement {
+        gpui::Empty.into_any_element()
     }
+
 
     fn get_permalink_to_line(&self, cx: &mut Context<Self>) -> Task<Result<url::Url>> {
         let buffer_and_selection = maybe!({
@@ -2475,43 +2159,6 @@ impl Editor {
         project.update(cx, |project, cx| {
             project.get_permalink_to_line(&buffer, selection, cx)
         })
-    }
-}
-
-#[cfg(test)]
-impl Editor {
-    /// Returns the line range for the first diff review overlay, if one is active.
-    /// Returns (start_row, end_row) as physical line numbers in the underlying file.
-    pub(super) fn diff_review_line_range(&self, cx: &App) -> Option<(u32, u32)> {
-        let overlay = self.diff_review_overlays.first()?;
-        let snapshot = self.buffer.read(cx).snapshot(cx);
-        let start_point = overlay.anchor_range.start.to_point(&snapshot);
-        let end_point = overlay.anchor_range.end.to_point(&snapshot);
-        let start_row = snapshot
-            .point_to_buffer_point(start_point)
-            .map(|(_, p)| p.row)
-            .unwrap_or(start_point.row);
-        let end_row = snapshot
-            .point_to_buffer_point(end_point)
-            .map(|(_, p)| p.row)
-            .unwrap_or(end_point.row);
-        Some((start_row, end_row))
-    }
-
-    /// Takes all stored comments from all hunks, clearing the storage.
-    /// Returns a Vec of (hunk_key, comments) pairs.
-    pub(super) fn take_all_review_comments(
-        &mut self,
-        cx: &mut Context<Self>,
-    ) -> Vec<(DiffHunkKey, Vec<StoredReviewComment>)> {
-        // Dismiss all overlays when taking comments (e.g., when sending to agent)
-        self.dismiss_all_diff_review_overlays(cx);
-        let comments = std::mem::take(&mut self.stored_review_comments);
-        // Reset the ID counter since all comments have been taken
-        self.next_review_comment_id = 0;
-        cx.emit(EditorEvent::ReviewCommentsChanged { total_count: 0 });
-        cx.notify();
-        comments
     }
 }
 
