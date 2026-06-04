@@ -1067,24 +1067,12 @@ impl CompletionsMenu {
                             _ => None,
                         };
 
-                        let icon_or_color_slot = completion
-                            .color()
-                            .map(|color| {
-                                div()
-                                    .flex_shrink_0()
-                                    .size_3p5()
-                                    .rounded_xs()
-                                    .bg(color)
-                                    .into_any_element()
-                            })
-                            .or_else(|| {
-                                completion.icon_path.as_ref().map(|path| {
-                                    Icon::from_path(path)
-                                        .size(IconSize::XSmall)
-                                        .color(Color::Muted)
-                                        .into_any_element()
-                                })
-                            });
+                        let icon_or_color_slot = completion.icon_path.as_ref().map(|path| {
+                            Icon::from_path(path)
+                                .size(IconSize::XSmall)
+                                .color(Color::Muted)
+                                .into_any_element()
+                        });
 
                         let kind_letter_slot = match completion_menu_item_kind {
                             CompletionMenuItemKind::Off => None,
