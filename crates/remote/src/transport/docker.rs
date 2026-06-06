@@ -230,7 +230,7 @@ impl DockerExecConnection {
             return Ok(dst_path);
         }
 
-        let wanted_version = cx.update(|cx| Ok::<_, anyhow::Error>(Some(AppVersion::global(cx))))?;
+        let wanted_version = cx.update(|cx| Ok::<Option<SemanticVersion>, anyhow::Error>(Some(AppVersion::global(cx))))?;
 
         let tmp_path_gz = paths::remote_server_dir_relative().join(
             RelPath::unix(&format!(
