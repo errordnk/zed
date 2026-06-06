@@ -320,7 +320,7 @@ mod tests {
             .prefix("DbTests")
             .tempdir()
             .unwrap();
-        let _bad_db = open_db::<BadDB>(tempdir.path(), release_channel::ReleaseChannel::Dev).await;
+        let _bad_db = open_db::<BadDB>(tempdir.path(), release_channel::ReleaseChannel::Stable).await;
     }
 
     /// Test that DB exists but corrupted (causing recreate)
@@ -348,11 +348,11 @@ mod tests {
             .unwrap();
         {
             let corrupt_db =
-                open_db::<CorruptedDB>(tempdir.path(), release_channel::ReleaseChannel::Dev).await;
+                open_db::<CorruptedDB>(tempdir.path(), release_channel::ReleaseChannel::Stable).await;
             assert!(corrupt_db.persistent());
         }
 
-        let good_db = open_db::<GoodDB>(tempdir.path(), release_channel::ReleaseChannel::Dev).await;
+        let good_db = open_db::<GoodDB>(tempdir.path(), release_channel::ReleaseChannel::Stable).await;
         assert!(
             good_db.select_row::<usize>("SELECT * FROM test2").unwrap()()
                 .unwrap()
@@ -387,7 +387,7 @@ mod tests {
         {
             // Setup the bad database
             let corrupt_db =
-                open_db::<CorruptedDB>(tempdir.path(), release_channel::ReleaseChannel::Dev).await;
+                open_db::<CorruptedDB>(tempdir.path(), release_channel::ReleaseChannel::Stable).await;
             assert!(corrupt_db.persistent());
         }
 
@@ -398,7 +398,7 @@ mod tests {
             let guard = thread::spawn(move || {
                 let good_db = gpui::block_on(open_db::<GoodDB>(
                     tmp_path.as_path(),
-                    release_channel::ReleaseChannel::Dev,
+                    release_channel::ReleaseChannel::Stable,
                 ));
                 assert!(
                     good_db.select_row::<usize>("SELECT * FROM test2").unwrap()()

@@ -173,10 +173,7 @@ impl WslRemoteConnection {
         version: Version,
         cx: &mut AsyncApp,
     ) -> Result<Arc<RelPath>> {
-        let version_str = match release_channel {
-            ReleaseChannel::Dev => "build".to_string(),
-            _ => version.to_string(),
-        };
+        let version_str = version.to_string();
 
         let binary_name = format!(
             "zed-remote-server-{}-{}",
@@ -228,10 +225,7 @@ impl WslRemoteConnection {
             return Ok(dst_path);
         }
 
-        let wanted_version = match release_channel {
-            ReleaseChannel::Nightly | ReleaseChannel::Dev => None,
-            _ => Some(cx.update(|cx| AppVersion::global(cx))),
-        };
+        let wanted_version = Some(cx.update(|cx| AppVersion::global(cx)));
 
         let src_path = delegate
             .download_server_binary_locally(self.platform, release_channel, wanted_version, cx)

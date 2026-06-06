@@ -37,14 +37,6 @@ pub fn init(cx: &mut App) {
             view_release_notes_locally(workspace, window, cx);
         });
 
-        if matches!(
-            ReleaseChannel::global(cx),
-            ReleaseChannel::Nightly | ReleaseChannel::Dev
-        ) {
-            workspace.register_action(|_workspace, _: &ShowUpdateNotification, _window, cx| {
-                show_update_notification(cx);
-            });
-        }
     })
     .detach();
 }
@@ -83,16 +75,6 @@ fn view_release_notes_locally(
     cx: &mut Context<Workspace>,
 ) {
     let release_channel = ReleaseChannel::global(cx);
-
-    if matches!(
-        release_channel,
-        ReleaseChannel::Nightly | ReleaseChannel::Dev
-    ) {
-        if let Some(url) = release_notes_url(cx) {
-            cx.open_url(&url);
-        }
-        return;
-    }
 
     let version = AppVersion::global(cx).to_string();
 
@@ -215,10 +197,6 @@ pub fn notify_if_app_was_updated(cx: &mut App) {
     let Some(updater) = AutoUpdater::get(cx) else {
         return;
     };
-
-    if let ReleaseChannel::Nightly = ReleaseChannel::global(cx) {
-        return;
-    }
 
     let should_show_notification = updater.read(cx).should_show_update_notification(cx);
 

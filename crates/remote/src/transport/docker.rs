@@ -4,7 +4,7 @@ use anyhow::anyhow;
 use async_trait::async_trait;
 use collections::HashMap;
 use parking_lot::Mutex;
-use release_channel::{AppCommitSha, AppVersion, ReleaseChannel};
+use release_channel::{AppVersion, ReleaseChannel};
 use semver::Version as SemanticVersion;
 use std::collections::BTreeMap;
 use std::time::Instant;
@@ -76,12 +76,8 @@ impl DockerExecConnection {
             path_style: None,
             shell: "sh".to_owned(),
         };
-        let (release_channel, version, commit) = cx.update(|cx| {
-            (
-                ReleaseChannel::global(cx),
-                AppVersion::global(cx),
-                AppCommitSha::try_global(cx),
-            )
+        let (release_channel, version) = cx.update(|cx| {
+            (ReleaseChannel::global(cx), AppVersion::global(cx))
         });
         let remote_platform = this.check_remote_platform().await?;
 
@@ -104,7 +100,6 @@ impl DockerExecConnection {
                 release_channel,
                 version,
                 &this.remote_dir_for_server,
-                commit,
                 cx,
             )
             .await?,
@@ -177,21 +172,13 @@ impl DockerExecConnection {
         release_channel: ReleaseChannel,
         version: SemanticVersion,
         remote_dir_for_server: &str,
-        commit: Option<AppCommitSha>,
         cx: &mut AsyncApp,
     ) -> Result<Arc<RelPath>> {
         let remote_platform = self
             .remote_platform
             .context("No remote platform defined; cannot proceed.")?;
 
-        let version_str = match release_channel {
-            ReleaseChannel::Nightly => {
-                let commit = commit.map(|s| s.full()).unwrap_or_default();
-                format!("{}-{}", version, commit)
-            }
-            ReleaseChannel::Dev => "build".to_string(),
-            _ => version.to_string(),
-        };
+        let version_str = version.to_string();
         let binary_name = format!(
             "zed-remote-server-{}-{}",
             release_channel.dev_name(),
@@ -243,16 +230,7 @@ impl DockerExecConnection {
             return Ok(dst_path);
         }
 
-        let wanted_version = cx.update(|cx| match release_channel {
-            ReleaseChannel::Nightly => Ok(None),
-            ReleaseChannel::Dev => {
-                anyhow::bail!(
-                    "ZED_BUILD_REMOTE_SERVER is not set and no remote server exists at ({:?})",
-                    dst_path
-                )
-            }
-            _ => Ok(Some(AppVersion::global(cx))),
-        })?;
+        let wanted_version = cx.update(|cx| Ok::<_, anyhow::Error>(Some(AppVersion::global(cx))))?;
 
         let tmp_path_gz = paths::remote_server_dir_relative().join(
             RelPath::unix(&format!(

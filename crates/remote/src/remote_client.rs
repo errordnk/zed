@@ -353,7 +353,6 @@ impl ConnectionIdentifier {
     fn to_string(&self, cx: &App) -> String {
         let identifier_prefix = match ReleaseChannel::global(cx) {
             ReleaseChannel::Stable => "".to_string(),
-            release_channel => format!("{}-", release_channel.dev_name()),
         };
         match self {
             Self::Setup(setup_id) => format!("{identifier_prefix}setup-{setup_id}"),

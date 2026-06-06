@@ -1,7 +1,7 @@
 pub use gpui::GpuSpecs;
 use gpui::{App, AppContext as _, Task, Window, actions};
 use human_bytes::human_bytes;
-use release_channel::{AppCommitSha, AppVersion, ReleaseChannel};
+use release_channel::{AppVersion, ReleaseChannel};
 use semver::Version;
 use serde::Serialize;
 use std::{env, fmt::Display};
@@ -42,12 +42,7 @@ impl SystemSpecs {
         );
         let memory = system.total_memory();
         let architecture = env::consts::ARCH;
-        let commit_sha = match release_channel {
-            ReleaseChannel::Dev | ReleaseChannel::Nightly => {
-                AppCommitSha::try_global(cx).map(|sha| sha.full())
-            }
-            _ => None,
-        };
+        let commit_sha = None;
         let bundle_type = bundle_type();
 
         let gpu_specs = window.gpu_specs().map(|specs| {
@@ -74,7 +69,6 @@ impl SystemSpecs {
 
     pub fn new_stateless(
         app_version: Version,
-        app_commit_sha: Option<AppCommitSha>,
         release_channel: ReleaseChannel,
         os_name: String,
         os_version: String,
@@ -84,10 +78,7 @@ impl SystemSpecs {
         );
         let memory = system.total_memory();
         let architecture = env::consts::ARCH;
-        let commit_sha = match release_channel {
-            ReleaseChannel::Dev | ReleaseChannel::Nightly => app_commit_sha.map(|sha| sha.full()),
-            _ => None,
-        };
+        let commit_sha = None;
         let bundle_type = bundle_type();
 
         Self {

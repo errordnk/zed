@@ -324,7 +324,6 @@ fn main() {
     if args.system_specs {
         let system_specs = system_specs::SystemSpecs::new_stateless(
             app_version,
-            app_commit_sha,
             *release_channel::RELEASE_CHANNEL,
             client::telemetry::os_name(),
             client::telemetry::os_version(),
@@ -369,9 +368,7 @@ fn main() {
 
     let (open_listener, mut open_rx) = OpenListener::new();
 
-    let failed_single_instance_check = if *zed_env_vars::ZED_STATELESS
-        || *release_channel::RELEASE_CHANNEL == ReleaseChannel::Dev
-    {
+    let failed_single_instance_check = if *zed_env_vars::ZED_STATELESS {
         false
     } else {
         #[cfg(any(target_os = "linux", target_os = "freebsd"))]

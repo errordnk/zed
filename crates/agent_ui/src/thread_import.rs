@@ -73,9 +73,7 @@ pub fn channels_with_threads(cx: &App) -> Vec<ReleaseChannel> {
         .iter()
         .copied()
         .filter(|channel| {
-            *channel != current_channel
-                && *channel != ReleaseChannel::Dev
-                && channel_has_threads(database_dir, *channel)
+            *channel != current_channel && channel_has_threads(database_dir, *channel)
         })
         .collect()
 }
@@ -625,7 +623,7 @@ fn import_threads_from_other_channels_in(
         let mut imported_threads = Vec::new();
 
         for channel in &ReleaseChannel::ALL {
-            if *channel == current_channel || *channel == ReleaseChannel::Dev {
+            if *channel == current_channel {
                 continue;
             }
 
@@ -942,20 +940,20 @@ mod tests {
     #[test]
     fn test_returns_empty_when_channel_db_missing() {
         let dir = tempfile::tempdir().unwrap();
-        let threads = read_threads_from_channel(dir.path(), ReleaseChannel::Nightly).unwrap();
+        let threads = read_threads_from_channel(dir.path(), ReleaseChannel::Stable).unwrap();
         assert!(threads.is_empty());
     }
 
     #[test]
     fn test_preserves_archived_state() {
         let dir = tempfile::tempdir().unwrap();
-        let connection = create_channel_db(dir.path(), ReleaseChannel::Nightly);
+        let connection = create_channel_db(dir.path(), ReleaseChannel::Stable);
 
         insert_thread(&connection, "Active Thread", "2025-01-15T10:00:00Z", false);
         insert_thread(&connection, "Archived Thread", "2025-01-15T09:00:00Z", true);
         drop(connection);
 
-        let threads = read_threads_from_channel(dir.path(), ReleaseChannel::Nightly).unwrap();
+        let threads = read_threads_from_channel(dir.path(), ReleaseChannel::Stable).unwrap();
         assert_eq!(threads.len(), 2);
 
         let active = threads
@@ -984,137 +982,4 @@ mod tests {
         cx.run_until_parked();
     }
 
-    /// Returns two release channels that are not the current one and not Dev.
-    /// This ensures tests work regardless of which release channel branch
-    /// they run on.
-    fn foreign_channels(cx: &TestAppContext) -> (ReleaseChannel, ReleaseChannel) {
-        let current = cx.update(|cx| ReleaseChannel::global(cx));
-        let mut channels = ReleaseChannel::ALL
-            .iter()
-            .copied()
-            .filter(|ch| *ch != current && *ch != ReleaseChannel::Dev);
-        (channels.next().unwrap(), channels.next().unwrap())
-    }
-
-    #[gpui::test]
-    async fn test_import_threads_from_other_channels(cx: &mut TestAppContext) {
-        init_test(cx);
-
-        let dir = tempfile::tempdir().unwrap();
-        let database_dir = dir.path().to_path_buf();
-
-        let (channel_a, channel_b) = foreign_channels(cx);
-
-        // Set up databases for two foreign channels.
-        let db_a = create_channel_db(dir.path(), channel_a);
-        insert_thread(&db_a, "Thread A1", "2025-01-15T10:00:00Z", false);
-        insert_thread(&db_a, "Thread A2", "2025-01-15T11:00:00Z", true);
-        drop(db_a);
-
-        let db_b = create_channel_db(dir.path(), channel_b);
-        insert_thread(&db_b, "Thread B1", "2025-01-15T12:00:00Z", false);
-        drop(db_b);
-
-        // Create a workspace and run the import.
-        let fs = fs::FakeFs::new(cx.executor());
-        let project = project::Project::test(fs, [], cx).await;
-        let multi_workspace =
-            cx.add_window(|window, cx| MultiWorkspace::test_new(project, window, cx));
-        let workspace_entity = multi_workspace
-            .read_with(cx, |mw, _cx| mw.workspace().clone())
-            .unwrap();
-        let mut vcx = gpui::VisualTestContext::from_window(multi_workspace.into(), cx);
-
-        workspace_entity.update_in(&mut vcx, |_workspace, _window, cx| {
-            import_threads_from_other_channels_in(database_dir, cx);
-        });
-        cx.run_until_parked();
-
-        // Verify all three threads were imported into the store.
-        cx.update(|cx| {
-            let store = ThreadMetadataStore::global(cx);
-            let store = store.read(cx);
-            let titles: collections::HashSet<String> = store
-                .entries()
-                .map(|m| m.display_title().to_string())
-                .collect();
-
-            assert_eq!(titles.len(), 3);
-            assert!(titles.contains("Thread A1"));
-            assert!(titles.contains("Thread A2"));
-            assert!(titles.contains("Thread B1"));
-
-            // Verify archived state is preserved.
-            let thread_a2 = store
-                .entries()
-                .find(|m| m.display_title().as_ref() == "Thread A2")
-                .unwrap();
-            assert!(thread_a2.archived);
-
-            let thread_b1 = store
-                .entries()
-                .find(|m| m.display_title().as_ref() == "Thread B1")
-                .unwrap();
-            assert!(!thread_b1.archived);
-        });
-    }
-
-    #[gpui::test]
-    async fn test_import_skips_already_existing_threads(cx: &mut TestAppContext) {
-        init_test(cx);
-
-        let dir = tempfile::tempdir().unwrap();
-        let database_dir = dir.path().to_path_buf();
-
-        let (channel_a, _) = foreign_channels(cx);
-
-        // Set up a database for a foreign channel.
-        let db_a = create_channel_db(dir.path(), channel_a);
-        insert_thread(&db_a, "Thread A", "2025-01-15T10:00:00Z", false);
-        insert_thread(&db_a, "Thread B", "2025-01-15T11:00:00Z", false);
-        drop(db_a);
-
-        // Read the threads so we can pre-populate one into the store.
-        let foreign_threads = read_threads_from_channel(dir.path(), channel_a).unwrap();
-        let thread_a = foreign_threads
-            .iter()
-            .find(|t| t.display_title().as_ref() == "Thread A")
-            .unwrap()
-            .clone();
-
-        // Pre-populate Thread A into the store.
-        cx.update(|cx| {
-            ThreadMetadataStore::global(cx).update(cx, |store, cx| store.save(thread_a, cx));
-        });
-        cx.run_until_parked();
-
-        // Run the import.
-        let fs = fs::FakeFs::new(cx.executor());
-        let project = project::Project::test(fs, [], cx).await;
-        let multi_workspace =
-            cx.add_window(|window, cx| MultiWorkspace::test_new(project, window, cx));
-        let workspace_entity = multi_workspace
-            .read_with(cx, |mw, _cx| mw.workspace().clone())
-            .unwrap();
-        let mut vcx = gpui::VisualTestContext::from_window(multi_workspace.into(), cx);
-
-        workspace_entity.update_in(&mut vcx, |_workspace, _window, cx| {
-            import_threads_from_other_channels_in(database_dir, cx);
-        });
-        cx.run_until_parked();
-
-        // Verify only Thread B was added (Thread A already existed).
-        cx.update(|cx| {
-            let store = ThreadMetadataStore::global(cx);
-            let store = store.read(cx);
-            assert_eq!(store.entries().count(), 2);
-
-            let titles: collections::HashSet<String> = store
-                .entries()
-                .map(|m| m.display_title().to_string())
-                .collect();
-            assert!(titles.contains("Thread A"));
-            assert!(titles.contains("Thread B"));
-        });
-    }
 }

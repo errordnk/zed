@@ -42,13 +42,7 @@ const ICON_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../zed/resources/wi
 const MANIFEST_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/resources/manifest.xml");
 
 pub fn compile(manifest: bool) -> Result<(), Box<dyn std::error::Error>> {
-    let channel = option_env!("RELEASE_CHANNEL").unwrap_or("dev");
-    let (icon_filename, product_name) = match channel {
-        "stable" => ("app-icon.ico", "Sarnet"),
-        "preview" => ("app-icon-preview.ico", "Sarnet Preview"),
-        "nightly" => ("app-icon-nightly.ico", "Sarnet Nightly"),
-        _ => ("app-icon-dev.ico", "Sarnet"),
-    };
+    let (icon_filename, product_name) = ("app-icon.ico", "Sarnet");
     let icon = std::path::PathBuf::from(ICON_DIR).join(icon_filename);
     let icon_escaped = icon.to_string_lossy().replace('\\', "\\\\");
 
