@@ -107,7 +107,7 @@ use multi_buffer::{
     MultiBufferPoint, MultiBufferRow, MultiBufferSnapshot, RowInfo, ToOffset, ToPoint,
 };
 use project::project_settings::DiagnosticSeverity;
-use project::{InlayId, lsp_store::LspFoldingRange, lsp_store::TokenType};
+use project::{InlayId, lsp_store::TokenType};
 use serde::Deserialize;
 use settings::Settings;
 use smallvec::SmallVec;
@@ -335,6 +335,7 @@ pub struct HighlightStyleInterner {
 }
 
 impl HighlightStyleInterner {
+    #[allow(dead_code)]
     pub(crate) fn intern(&mut self, style: HighlightStyle) -> HighlightStyleId {
         HighlightStyleId(self.styles.insert_full(style).0 as u32)
     }
@@ -944,72 +945,12 @@ impl DisplayMap {
         self.crease_map.remove(crease_ids, &snapshot)
     }
 
-    /// Replaces the LSP folding-range creases for a single buffer.
-    /// Converts the supplied buffer-anchor ranges into multi-buffer creases
-    /// by mapping them through the appropriate excerpts.
-    pub(super) fn set_lsp_folding_ranges(
-        &mut self,
-        buffer_id: BufferId,
-        ranges: Vec<LspFoldingRange>,
-        cx: &mut Context<Self>,
-    ) {
-        let snapshot = self.buffer.read(cx).snapshot(cx);
-
-        let old_ids = self
-            .lsp_folding_crease_ids
-            .remove(&buffer_id)
-            .unwrap_or_default();
-        if !old_ids.is_empty() {
-            self.crease_map.remove(old_ids, &snapshot);
-        }
-
-        if ranges.is_empty() {
-            return;
-        }
-
-        let base_placeholder = self.fold_placeholder.clone();
-        let creases = ranges.into_iter().filter_map(|folding_range| {
-            let mb_range =
-                snapshot.buffer_anchor_range_to_anchor_range(folding_range.range.clone())?;
-            let placeholder = if let Some(collapsed_text) = folding_range.collapsed_text {
-                FoldPlaceholder {
-                    render: Arc::new({
-                        let collapsed_text = collapsed_text.clone();
-                        move |fold_id, _fold_range, cx: &mut gpui::App| {
-                            use gpui::{Element as _, ParentElement as _};
-                            FoldPlaceholder::fold_element(fold_id, cx)
-                                .child(collapsed_text.clone())
-                                .into_any()
-                        }
-                    }),
-                    constrain_width: false,
-                    merge_adjacent: base_placeholder.merge_adjacent,
-                    type_tag: base_placeholder.type_tag,
-                    collapsed_text: Some(collapsed_text),
-                }
-            } else {
-                base_placeholder.clone()
-            };
-            Some(Crease::simple(mb_range, placeholder))
-        });
-
-        let new_ids = self.crease_map.insert(creases, &snapshot);
-        if !new_ids.is_empty() {
-            self.lsp_folding_crease_ids.insert(buffer_id, new_ids);
-        }
-    }
-
     /// Removes all LSP folding-range creases for a single buffer.
     pub(super) fn clear_lsp_folding_ranges(&mut self, buffer_id: BufferId, cx: &mut Context<Self>) {
         if let Some(old_ids) = self.lsp_folding_crease_ids.remove(&buffer_id) {
             let snapshot = self.buffer.read(cx).snapshot(cx);
             self.crease_map.remove(old_ids, &snapshot);
         }
-    }
-
-    /// Returns `true` when at least one buffer has LSP folding-range creases.
-    pub(super) fn has_lsp_folding_ranges(&self) -> bool {
-        !self.lsp_folding_crease_ids.is_empty()
     }
 
     #[instrument(skip_all)]
@@ -1163,26 +1104,6 @@ impl DisplayMap {
     }
 
     #[instrument(skip_all)]
-    pub(crate) fn highlight_inlays(
-        &mut self,
-        key: HighlightKey,
-        highlights: Vec<InlayHighlight>,
-        style: HighlightStyle,
-    ) {
-        for highlight in highlights {
-            let update = self.inlay_highlights.update(&key, |highlights| {
-                highlights.insert(highlight.inlay, (style, highlight.clone()))
-            });
-            if update.is_none() {
-                self.inlay_highlights.insert(
-                    key,
-                    TreeMap::from_ordered_entries([(highlight.inlay, (style, highlight))]),
-                );
-            }
-        }
-    }
-
-    #[instrument(skip_all)]
     pub fn text_highlights(&self, key: HighlightKey) -> Option<(HighlightStyle, &[Range<Anchor>])> {
         let highlights = self.text_highlights.get(&key)?;
         Some((highlights.0, &highlights.1))
@@ -1269,6 +1190,7 @@ impl DisplayMap {
         widths_changed
     }
 
+    #[cfg(any(test, feature = "test-support"))]
     pub(crate) fn current_inlays(&self) -> impl Iterator<Item = &Inlay> + Default {
         self.inlay_map.current_inlays()
     }
@@ -1899,55 +1821,6 @@ impl DisplaySnapshot {
                 .highlight_invisibles(editor_style)
             }
         })
-    }
-
-    /// Returns combined highlight styles (tree-sitter syntax + semantic tokens)
-    /// for a byte range within the specified buffer.
-    /// Returned ranges are 0-based relative to `buffer_range.start`.
-    pub(super) fn combined_highlights(
-        &self,
-        multibuffer_range: Range<MultiBufferOffset>,
-        syntax_theme: &theme::SyntaxTheme,
-    ) -> Vec<(Range<usize>, HighlightStyle)> {
-        let multibuffer = self.buffer_snapshot();
-
-        let chunks = custom_highlights::CustomHighlightsChunks::new(
-            multibuffer_range,
-            LanguageAwareStyling {
-                tree_sitter: true,
-                diagnostics: true,
-            },
-            None,
-            Some(&self.semantic_token_highlights),
-            multibuffer,
-        );
-
-        let mut highlights = Vec::new();
-        let mut offset = 0usize;
-        for chunk in chunks {
-            let chunk_len = chunk.text.len();
-            if chunk_len == 0 {
-                continue;
-            }
-
-            let syntax_style = chunk
-                .syntax_highlight_id
-                .and_then(|id| syntax_theme.get(id).cloned());
-
-            let overlay_style = chunk.highlight_style;
-
-            let combined = match (syntax_style, overlay_style) {
-                (Some(syntax), Some(overlay)) => Some(syntax.highlight(overlay)),
-                (some @ Some(_), None) | (None, some @ Some(_)) => some,
-                (None, None) => None,
-            };
-
-            if let Some(style) = combined {
-                highlights.push((offset..offset + chunk_len, style));
-            }
-            offset += chunk_len;
-        }
-        highlights
     }
 
     #[instrument(skip_all)]

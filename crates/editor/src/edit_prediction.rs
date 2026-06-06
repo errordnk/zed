@@ -27,14 +27,11 @@ pub(super) enum EditPrediction {
         /// The anchor is in multibuffer coordinates; after applying edits,
         /// resolve the anchor and add the offset to get the final cursor position.
         cursor_position: Option<(Anchor, usize)>,
-        edit_preview: Option<EditPreview>,
         display_mode: EditDisplayMode,
-        snapshot: BufferSnapshot,
     },
     /// Move to a specific location in the active editor
     MoveWithin {
         target: Anchor,
-        snapshot: BufferSnapshot,
     },
     /// Move to a specific location in a different editor (not the active one)
     MoveOutside {
@@ -66,46 +63,14 @@ pub(super) enum MenuEditPredictionsPolicy {
 
 pub(super) enum EditPredictionPreview {
     /// Modifier is not pressed
-    Inactive { released_too_fast: bool },
+    Inactive,
     /// Modifier pressed
     Active {
-        since: Instant,
         previous_scroll_position: Option<SharedScrollAnchor>,
     },
 }
 
-#[derive(Copy, Clone, Eq, PartialEq)]
-pub(super) enum EditPredictionKeybindSurface {
-    Inline,
-    CursorPopoverCompact,
-    CursorPopoverExpanded,
-}
-
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
-pub(super) enum EditPredictionKeybindAction {
-    Accept,
-    Preview,
-}
-
-pub(super) struct EditPredictionKeybindDisplay {
-    #[cfg(test)]
-    pub(super) accept_keystroke: Option<gpui::KeybindingKeystroke>,
-    #[cfg(test)]
-    pub(super) preview_keystroke: Option<gpui::KeybindingKeystroke>,
-    pub(super) displayed_keystroke: Option<gpui::KeybindingKeystroke>,
-    pub(super) action: EditPredictionKeybindAction,
-    pub(super) missing_accept_keystroke: bool,
-    pub(super) show_hold_label: bool,
-}
-
 impl EditPredictionPreview {
-    pub(super) fn released_too_fast(&self) -> bool {
-        match self {
-            EditPredictionPreview::Inactive { released_too_fast } => *released_too_fast,
-            EditPredictionPreview::Active { .. } => false,
-        }
-    }
-
     pub(super) fn set_previous_scroll_position(
         &mut self,
         scroll_position: Option<SharedScrollAnchor>,
@@ -123,29 +88,6 @@ impl EditPredictionPreview {
 pub(super) struct RegisteredEditPredictionDelegate {
     pub(super) provider: Arc<dyn EditPredictionDelegateHandle>,
     _subscription: Subscription,
-}
-
-pub(super) fn edit_prediction_edit_text(
-    current_snapshot: &BufferSnapshot,
-    edits: &[(Range<Anchor>, impl AsRef<str>)],
-    edit_preview: &EditPreview,
-    include_deletions: bool,
-    multibuffer_snapshot: &MultiBufferSnapshot,
-    cx: &App,
-) -> HighlightedText {
-    let edits = edits
-        .iter()
-        .filter_map(|(anchor, text)| {
-            Some((
-                multibuffer_snapshot
-                    .anchor_range_to_buffer_anchor_range(anchor.clone())?
-                    .1,
-                text,
-            ))
-        })
-        .collect::<Vec<_>>();
-
-    edit_preview.highlight_edits(current_snapshot, &edits, include_deletions, cx)
 }
 
 impl Editor {
@@ -578,85 +520,6 @@ impl Editor {
         Some(self.edit_prediction_provider.as_ref()?.provider.clone())
     }
 
-    pub(super) fn preview_edit_prediction_keystroke(
-        &self,
-        window: &mut Window,
-        cx: &mut App,
-    ) -> Option<gpui::KeybindingKeystroke> {
-        let key_context = self.key_context_internal(true, window, cx);
-        let bindings = window.bindings_for_action_in_context(&AcceptEditPrediction, key_context);
-        bindings
-            .into_iter()
-            .rev()
-            .find_map(|binding| match binding.keystrokes() {
-                [keystroke, ..] if keystroke.modifiers().modified() => Some(keystroke.clone()),
-                _ => None,
-            })
-    }
-
-    pub(super) fn edit_prediction_keybind_display(
-        &self,
-        surface: EditPredictionKeybindSurface,
-        window: &mut Window,
-        cx: &mut App,
-    ) -> EditPredictionKeybindDisplay {
-        let accept_keystroke =
-            self.accept_edit_prediction_keystroke(EditPredictionGranularity::Full, window, cx);
-        let preview_keystroke = self.preview_edit_prediction_keystroke(window, cx);
-
-        let action = match surface {
-            EditPredictionKeybindSurface::Inline
-            | EditPredictionKeybindSurface::CursorPopoverCompact => {
-                if self.edit_prediction_requires_modifier() {
-                    EditPredictionKeybindAction::Preview
-                } else {
-                    EditPredictionKeybindAction::Accept
-                }
-            }
-            EditPredictionKeybindSurface::CursorPopoverExpanded => self
-                .active_edit_prediction
-                .as_ref()
-                .filter(|completion| {
-                    self.edit_prediction_cursor_popover_prefers_preview(completion, cx)
-                })
-                .map_or(EditPredictionKeybindAction::Accept, |_| {
-                    EditPredictionKeybindAction::Preview
-                }),
-        };
-        #[cfg(test)]
-        let preview_copy = preview_keystroke.clone();
-        #[cfg(test)]
-        let accept_copy = accept_keystroke.clone();
-
-        let displayed_keystroke = match surface {
-            EditPredictionKeybindSurface::Inline => match action {
-                EditPredictionKeybindAction::Accept => accept_keystroke,
-                EditPredictionKeybindAction::Preview => preview_keystroke,
-            },
-            EditPredictionKeybindSurface::CursorPopoverCompact
-            | EditPredictionKeybindSurface::CursorPopoverExpanded => match action {
-                EditPredictionKeybindAction::Accept => accept_keystroke,
-                EditPredictionKeybindAction::Preview => {
-                    preview_keystroke.or_else(|| accept_keystroke.clone())
-                }
-            },
-        };
-
-        let missing_accept_keystroke = displayed_keystroke.is_none();
-
-        EditPredictionKeybindDisplay {
-            #[cfg(test)]
-            accept_keystroke: accept_copy,
-            #[cfg(test)]
-            preview_keystroke: preview_copy,
-            displayed_keystroke,
-            action,
-            missing_accept_keystroke,
-            show_hold_label: matches!(surface, EditPredictionKeybindSurface::CursorPopoverCompact)
-                && self.edit_prediction_preview.released_too_fast(),
-        }
-    }
-
     pub(super) fn show_edit_predictions_in_menu(&self) -> bool {
         match self.edit_prediction_settings {
             EditPredictionSettings::Disabled => false,
@@ -725,11 +588,10 @@ impl Editor {
         if modifiers_held {
             if matches!(
                 self.edit_prediction_preview,
-                EditPredictionPreview::Inactive { .. }
+                EditPredictionPreview::Inactive
             ) {
                 self.edit_prediction_preview = EditPredictionPreview::Active {
                     previous_scroll_position: None,
-                    since: Instant::now(),
                 };
 
                 self.update_visible_edit_prediction(window, cx);
@@ -737,7 +599,7 @@ impl Editor {
             }
         } else if let EditPredictionPreview::Active {
             previous_scroll_position,
-            since,
+            ..
         } = self.edit_prediction_preview
         {
             if let (Some(previous_scroll_position), Some(position_map)) =
@@ -751,9 +613,7 @@ impl Editor {
                 );
             }
 
-            self.edit_prediction_preview = EditPredictionPreview::Inactive {
-                released_too_fast: since.elapsed() < Duration::from_millis(200),
-            };
+            self.edit_prediction_preview = EditPredictionPreview::Inactive;
             self.clear_row_highlights::<EditPredictionPreview>();
             self.update_visible_edit_prediction(window, cx);
             cx.notify();
@@ -837,14 +697,14 @@ impl Editor {
 
         let edit_prediction = provider.suggest(&buffer, cursor_text_anchor, cx)?;
 
-        let (completion_id, edits, predicted_cursor_position, edit_preview) = match edit_prediction
+        let (completion_id, edits, predicted_cursor_position) = match edit_prediction
         {
             edit_prediction_types::EditPrediction::Local {
                 id,
                 edits,
                 cursor_position,
-                edit_preview,
-            } => (id, edits, cursor_position, edit_preview),
+                ..
+            } => (id, edits, cursor_position),
             edit_prediction_types::EditPrediction::Jump {
                 id,
                 snapshot,
@@ -900,9 +760,8 @@ impl Editor {
 
         let cursor_row = cursor.to_point(&multibuffer).row;
 
-        let snapshot = multibuffer
-            .buffer_for_id(cursor_text_anchor.buffer_id)
-            .cloned()?;
+        multibuffer
+            .buffer_for_id(cursor_text_anchor.buffer_id)?;
 
         let mut inlay_ids = Vec::new();
         let invalidation_row_range;
@@ -928,11 +787,8 @@ impl Editor {
             invalidation_row_range =
                 move_invalidation_row_range.unwrap_or(edit_start_row..edit_end_row);
 
-            let (_, snapshot) = multibuffer.anchor_to_buffer_anchor(first_edit_start)?;
-
             EditPrediction::MoveWithin {
                 target: first_edit_start,
-                snapshot: snapshot.clone(),
             }
         } else {
             let show_completions_in_menu = self.has_visible_completions_menu();
@@ -1004,9 +860,7 @@ impl Editor {
             EditPrediction::Edit {
                 edits,
                 cursor_position,
-                edit_preview,
                 display_mode,
-                snapshot,
             }
         };
 
@@ -1069,34 +923,6 @@ impl Editor {
         None
     }
 
-    fn accept_edit_prediction_keystroke(
-        &self,
-        granularity: EditPredictionGranularity,
-        window: &mut Window,
-        cx: &mut App,
-    ) -> Option<gpui::KeybindingKeystroke> {
-        let key_context = self.key_context_internal(true, window, cx);
-
-        let bindings =
-            match granularity {
-                EditPredictionGranularity::Word => window
-                    .bindings_for_action_in_context(&AcceptNextWordEditPrediction, key_context),
-                EditPredictionGranularity::Line => window
-                    .bindings_for_action_in_context(&AcceptNextLineEditPrediction, key_context),
-                EditPredictionGranularity::Full => {
-                    window.bindings_for_action_in_context(&AcceptEditPrediction, key_context)
-                }
-            };
-
-        bindings
-            .into_iter()
-            .rev()
-            .find_map(|binding| match binding.keystrokes() {
-                [keystroke, ..] => Some(keystroke.clone()),
-                _ => None,
-            })
-    }
-
     fn edit_prediction_preview_modifiers_held(
         &self,
         modifiers: &Modifiers,
@@ -1130,53 +956,6 @@ impl Editor {
                     })
                 })
         })
-    }
-
-    fn edit_prediction_cursor_popover_prefers_preview(
-        &self,
-        completion: &EditPredictionState,
-        cx: &App,
-    ) -> bool {
-        let multibuffer_snapshot = self.buffer.read(cx).snapshot(cx);
-
-        match &completion.completion {
-            EditPrediction::Edit {
-                edits, snapshot, ..
-            } => {
-                let mut start_row: Option<u32> = None;
-                let mut end_row: Option<u32> = None;
-
-                for (range, text) in edits {
-                    let Some((_, range)) =
-                        multibuffer_snapshot.anchor_range_to_buffer_anchor_range(range.clone())
-                    else {
-                        continue;
-                    };
-                    let edit_start_row = range.start.to_point(snapshot).row;
-                    let old_end_row = range.end.to_point(snapshot).row;
-                    let inserted_newline_count = text
-                        .as_ref()
-                        .chars()
-                        .filter(|character| *character == '\n')
-                        .count() as u32;
-                    let deleted_newline_count = old_end_row - edit_start_row;
-                    let preview_end_row = edit_start_row + inserted_newline_count;
-
-                    start_row =
-                        Some(start_row.map_or(edit_start_row, |row| row.min(edit_start_row)));
-                    end_row = Some(end_row.map_or(preview_end_row, |row| row.max(preview_end_row)));
-
-                    if deleted_newline_count > 1 {
-                        end_row = Some(end_row.map_or(old_end_row, |row| row.max(old_end_row)));
-                    }
-                }
-
-                start_row
-                    .zip(end_row)
-                    .is_some_and(|(start_row, end_row)| end_row > start_row)
-            }
-            EditPrediction::MoveWithin { .. } | EditPrediction::MoveOutside { .. } => false,
-        }
     }
 
     fn edit_predictions_disabled_in_scope(
@@ -1329,10 +1108,6 @@ impl Editor {
         })
     }
 
-    const EDIT_PREDICTION_POPOVER_PADDING_X: Pixels = px(24.);
-
-    const EDIT_PREDICTION_POPOVER_PADDING_Y: Pixels = px(2.);
-
 }
 
 
@@ -1340,67 +1115,6 @@ impl Editor {
 impl Editor {
     pub(super) fn set_menu_edit_predictions_policy(&mut self, value: MenuEditPredictionsPolicy) {
         self.menu_edit_predictions_policy = value;
-    }
-}
-
-struct MissingEditPredictionKeybindingTooltip;
-
-impl Render for MissingEditPredictionKeybindingTooltip {
-    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        ui::tooltip_container(cx, |container, cx| {
-            container
-                .flex_shrink_0()
-                .max_w_80()
-                .min_h(rems_from_px(124.))
-                .justify_between()
-                .child(
-                    v_flex()
-                        .flex_1()
-                        .text_ui_sm(cx)
-                        .child(Label::new("Conflict with Accept Keybinding"))
-                        .child("Your keymap currently overrides the default accept keybinding. To continue, assign one keybinding for the `editor::AcceptEditPrediction` action.")
-                )
-                .child(
-                    h_flex()
-                        .pb_1()
-                        .gap_1()
-                        .items_end()
-                        .w_full()
-                        .child(Button::new("open-keymap", "Assign Keybinding").size(ButtonSize::Compact).on_click(|_ev, window, cx| {
-                            window.dispatch_action(zed_actions::OpenKeymapFile.boxed_clone(), cx)
-                        }))
-                        .child(Button::new("see-docs", "See Docs").size(ButtonSize::Compact).on_click(|_ev, _window, cx| {
-                            cx.open_url("https://zed.dev/docs/completions#edit-predictions-missing-keybinding");
-                        })),
-                )
-        })
-    }
-}
-
-fn edit_prediction_fallback_text(edits: &[(Range<Anchor>, Arc<str>)], cx: &App) -> HighlightedText {
-    // Fallback for providers that don't provide edit_preview (like Copilot)
-    // Just show the raw edit text with basic styling
-    let mut text = String::new();
-    let mut highlights = Vec::new();
-
-    let insertion_highlight_style = HighlightStyle {
-        color: Some(cx.theme().colors().text),
-        ..Default::default()
-    };
-
-    for (_, edit_text) in edits {
-        let start_offset = text.len();
-        text.push_str(edit_text);
-        let end_offset = text.len();
-
-        if start_offset < end_offset {
-            highlights.push((start_offset..end_offset, insertion_highlight_style));
-        }
-    }
-
-    HighlightedText {
-        text: text.into(),
-        highlights,
     }
 }
 

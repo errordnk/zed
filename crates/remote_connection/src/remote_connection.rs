@@ -242,9 +242,7 @@ impl RemoteConnectionModal {
             }
             RemoteConnectionOptions::Docker(options) => (options.name.clone(), None, false, true),
             #[cfg(any(test, feature = "test-support"))]
-            RemoteConnectionOptions::Mock(options) => {
-                (format!("mock-{}", options.id), None, false, false)
-            }
+            RemoteConnectionOptions::Mock(options) => (format!("mock-{}", options.id), None, false, false),
         };
         Self {
             prompt: cx.new(|cx| {

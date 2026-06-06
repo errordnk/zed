@@ -1,4 +1,3 @@
-use collections::HashMap;
 use language::BufferId;
 use project::CodeAction;
 use ui::{Context, Window};
@@ -6,15 +5,11 @@ use workspace::Workspace;
 
 use crate::{Editor, actions::ToggleCodeLens};
 
-pub(super) struct CodeLensState {
-    pub(super) blocks: HashMap<BufferId, Vec<()>>,
-}
+pub(super) struct CodeLensState {}
 
 impl Default for CodeLensState {
     fn default() -> Self {
-        Self {
-            blocks: HashMap::default(),
-        }
+        Self {}
     }
 }
 

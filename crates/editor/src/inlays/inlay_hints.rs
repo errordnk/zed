@@ -1,7 +1,6 @@
 use collections::HashMap;
 use gpui::{App, Context, Pixels};
 use language::language_settings::{InlayHintKind, InlayHintSettings};
-use lsp::LanguageServerId;
 use multi_buffer::Anchor;
 use text::BufferId;
 use ui::Window;
@@ -20,33 +19,13 @@ pub fn inlay_hint_settings(
 #[derive(Debug)]
 pub struct LspInlayHintData {
     pub added_hints: HashMap<InlayId, Option<InlayHintKind>>,
-    enabled: bool,
 }
 
 impl LspInlayHintData {
-    pub fn new(settings: InlayHintSettings) -> Self {
+    pub fn new(_settings: InlayHintSettings) -> Self {
         Self {
             added_hints: HashMap::default(),
-            enabled: settings.enabled,
         }
-    }
-
-    pub fn modifiers_override(&mut self, _new_override: bool) -> Option<bool> {
-        None
-    }
-
-    pub fn toggle(&mut self, _enabled: bool) -> bool {
-        false
-    }
-
-    pub fn clear(&mut self) {
-        self.added_hints.clear();
-    }
-
-    pub fn clear_for_buffers<'a>(
-        &mut self,
-        _removed_buffer_ids: impl IntoIterator<Item = &'a BufferId> + 'a,
-    ) {
     }
 
     pub(crate) fn remove_inlay_chunk_data<'a>(
@@ -58,17 +37,13 @@ impl LspInlayHintData {
 
 #[derive(Debug, Clone)]
 pub enum InlayHintRefreshReason {
-    ModifiersChanged(bool),
-    Toggle(bool),
-    SettingsChange(InlayHintSettings),
+    ModifiersChanged,
+    SettingsChange,
     NewLinesShown,
-    BufferEdited(BufferId),
+    BufferEdited,
     ServerRemoved,
-    RefreshRequested {
-        server_id: LanguageServerId,
-        request_id: Option<usize>,
-    },
-    BuffersRemoved(Vec<BufferId>),
+    RefreshRequested,
+    BuffersRemoved,
 }
 
 impl Editor {

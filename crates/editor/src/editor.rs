@@ -89,9 +89,7 @@ pub(crate) use edit_prediction::{
     EditPredictionState, MenuEditPredictionsPolicy, RegisteredEditPredictionDelegate,
 };
 #[cfg(test)]
-pub(crate) use edit_prediction::{
-    EditPredictionKeybindAction, EditPredictionKeybindSurface, edit_prediction_edit_text,
-};
+pub(crate) use edit_prediction::edit_prediction_edit_text;
 pub use edit_prediction_types::Direction;
 pub use editor_settings::{
     CompletionDetailAlignment, CompletionMenuItemKind, CurrentLineHighlight, DiffViewStyle,
@@ -146,7 +144,7 @@ use edit_prediction_types::{
     EditPredictionGranularity, SuggestionDisplayType,
 };
 use editor_settings::{GoToDefinitionFallback, Minimap as MinimapSettings};
-use element::{LineWithInvisibles, PositionMap, layout_line};
+use element::{LineWithInvisibles, PositionMap};
 use futures::{
     FutureExt,
     future::{self, Shared},
@@ -154,25 +152,25 @@ use futures::{
 use fuzzy::{StringMatch, StringMatchCandidate};
 use git::blame::{GitBlame, GlobalBlameRenderer};
 use gpui::{
-    Action, Animation, AnimationExt, AnyElement, App, AppContext, AsyncWindowContext,
-    AvailableSpace, Background, Bounds, ClickEvent, ClipboardEntry, ClipboardItem, Context,
-    DispatchPhase, Edges, Entity, EntityId, EntityInputHandler, EventEmitter, FocusHandle,
+    Action, AnyElement, App, AppContext, AsyncWindowContext,
+    Background, Bounds, ClickEvent, ClipboardEntry, ClipboardItem, Context,
+    DispatchPhase, Entity, EntityId, EntityInputHandler, EventEmitter, FocusHandle,
     FocusOutEvent, Focusable, FontId, FontStyle, FontWeight, Global, HighlightStyle, Hsla,
     KeyContext, Modifiers, MouseButton, MouseDownEvent, MouseMoveEvent, PaintQuad, ParentElement,
-    Pixels, PressureStage, Render, ScrollHandle, SharedString, SharedUri, Size, Stateful, Styled,
+    Pixels, PressureStage, Render, ScrollHandle, SharedString, Size, Styled,
     Subscription, Task, TextRun, TextStyle, TextStyleRefinement, UTF16Selection, UnderlineStyle,
     UniformListScrollHandle, WeakEntity, WeakFocusHandle, Window, div, point, prelude::*,
-    pulsating_between, px, relative, size,
+    px, relative, size,
 };
 use hover_links::{HoverLink, HoveredLinkState, find_file};
 use hover_popover::{HoverState, hide_hover};
 use indent_guides::ActiveIndentGuidesState;
-use inlays::{InlaySplice, inlay_hints::InlayHintRefreshReason};
+use inlays::inlay_hints::InlayHintRefreshReason;
 use itertools::{Either, Itertools};
 use language::{
     AutoindentMode, BlockCommentConfig, BracketMatch, BracketPair, Buffer, BufferRow,
     BufferSnapshot, Capability, CharClassifier, CharKind, CharScopeContext, CodeLabel, CursorShape,
-    DiagnosticEntryRef, DiffOptions, EditPredictionsMode, EditPreview, HighlightedText, IndentKind,
+    DiagnosticEntryRef, DiffOptions, EditPredictionsMode, HighlightedText, IndentKind,
     IndentSize, Language, LanguageAwareStyling, LanguageName, LanguageRegistry, LanguageScope,
     LocalFile, OffsetRangeExt, OutlineItem, Point, Selection, SelectionGoal, TextObject,
     TransactionId, TreeSitterOptions, WordsQuery,
@@ -250,8 +248,8 @@ use theme::{
 };
 use theme_settings::{ThemeSettings, observe_buffer_font_size_adjustment};
 use ui::{
-    Avatar, ButtonSize, ButtonStyle, ContextMenu, Disclosure, IconButton, IconButtonShape,
-    IconName, IconSize, Indicator, Key, Tooltip, h_flex, prelude::*, scrollbars::ScrollbarAutoHide,
+    ButtonStyle, ContextMenu, Disclosure, IconButton, IconButtonShape,
+    IconName, IconSize, Indicator, Tooltip, h_flex, prelude::*, scrollbars::ScrollbarAutoHide,
     utils::WithRemSize,
 };
 use ui_input::ErasedEditor;
@@ -1018,7 +1016,6 @@ pub struct Editor {
     edit_prediction_preview: EditPredictionPreview,
     in_leading_whitespace: bool,
     next_inlay_id: usize,
-    next_color_inlay_id: usize,
     _subscriptions: Vec<Subscription>,
     pixel_position_of_newest_cursor: Option<gpui::Point<Pixels>>,
     gutter_dimensions: GutterDimensions,
@@ -1097,10 +1094,7 @@ pub struct Editor {
     colors: Option<LspColorData>,
     code_lens: Option<CodeLensState>,
     post_scroll_update: Task<()>,
-    refresh_colors_task: Task<()>,
-    refresh_code_lens_task: Task<()>,
     use_document_folding_ranges: bool,
-    refresh_folding_ranges_task: Task<()>,
     inlay_hints: Option<LspInlayHintData>,
     folding_newlines: Task<()>,
     select_next_is_case_sensitive: Option<bool>,
@@ -1113,14 +1107,12 @@ pub struct Editor {
     bracket_fetched_tree_sitter_chunks: HashMap<Range<text::Anchor>, HashSet<Range<BufferRow>>>,
     semantic_token_state: SemanticTokenState,
     pub(crate) refresh_matching_bracket_highlights_task: Task<()>,
-    refresh_document_symbols_task: Shared<Task<()>>,
     lsp_document_links: LspDocumentLinks,
     lsp_document_symbols: HashMap<BufferId, Vec<OutlineItem<text::Anchor>>>,
     refresh_outline_symbols_at_cursor_at_cursor_task: Task<()>,
     outline_symbols_at_cursor: Option<(BufferId, Vec<OutlineItem<Anchor>>)>,
     sticky_headers_task: Task<()>,
     sticky_headers: Option<Vec<OutlineItem<Anchor>>>,
-    pub(crate) colorize_brackets_task: Task<()>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -1129,13 +1121,6 @@ struct AccentData {
     overrides: Vec<SharedString>,
 }
 
-fn debounce_value(debounce_ms: u64) -> Option<Duration> {
-    if debounce_ms > 0 {
-        Some(Duration::from_millis(debounce_ms))
-    } else {
-        None
-    }
-}
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Default)]
 enum NextScrollCursorCenterTopBottom {
@@ -1857,15 +1842,9 @@ impl Editor {
                     project::Event::RefreshCodeLens => {
                         editor.refresh_code_lenses(None, window, cx);
                     }
-                    project::Event::RefreshInlayHints {
-                        server_id,
-                        request_id,
-                    } => {
+                    project::Event::RefreshInlayHints { .. } => {
                         editor.refresh_inlay_hints(
-                            InlayHintRefreshReason::RefreshRequested {
-                                server_id: *server_id,
-                                request_id: *request_id,
-                            },
+                            InlayHintRefreshReason::RefreshRequested,
                             cx,
                         );
                     }
@@ -2206,9 +2185,7 @@ impl Editor {
             edit_prediction_provider: None,
             active_edit_prediction: None,
             stale_edit_prediction_in_menu: None,
-            edit_prediction_preview: EditPredictionPreview::Inactive {
-                released_too_fast: false,
-            },
+            edit_prediction_preview: EditPredictionPreview::Inactive,
             inline_diagnostics_enabled: full_mode,
             diagnostics_enabled: full_mode,
             word_completions_enabled: full_mode,
@@ -2284,12 +2261,8 @@ impl Editor {
             pull_diagnostics_task: Task::ready(()),
             colors: None,
             code_lens: None,
-            refresh_colors_task: Task::ready(()),
-            refresh_code_lens_task: Task::ready(()),
             use_document_folding_ranges: false,
-            refresh_folding_ranges_task: Task::ready(()),
             inlay_hints: None,
-            next_color_inlay_id: 0,
             post_scroll_update: Task::ready(()),
             linked_edit_ranges: Default::default(),
             in_project_search: false,
@@ -2322,14 +2295,12 @@ impl Editor {
             bracket_fetched_tree_sitter_chunks: HashMap::default(),
             number_deleted_lines: false,
             refresh_matching_bracket_highlights_task: Task::ready(()),
-            refresh_document_symbols_task: Task::ready(()).shared(),
             lsp_document_links: LspDocumentLinks::new(cx),
             lsp_document_symbols: HashMap::default(),
             refresh_outline_symbols_at_cursor_at_cursor_task: Task::ready(()),
             outline_symbols_at_cursor: None,
             sticky_headers_task: Task::ready(()),
             sticky_headers: None,
-            colorize_brackets_task: Task::ready(()),
         };
 
         if is_minimap {
@@ -9257,7 +9228,7 @@ impl Editor {
                         self.register_buffer(buffer_id, cx);
                         self.update_lsp_data(Some(buffer_id), window, cx);
                         self.refresh_inlay_hints(
-                            InlayHintRefreshReason::BufferEdited(buffer_id),
+                            InlayHintRefreshReason::BufferEdited,
                             cx,
                         );
                     }
@@ -9314,7 +9285,7 @@ impl Editor {
                     inlay_hints.remove_inlay_chunk_data(removed_buffer_ids);
                 }
                 self.refresh_inlay_hints(
-                    InlayHintRefreshReason::BuffersRemoved(removed_buffer_ids.clone()),
+                    InlayHintRefreshReason::BuffersRemoved,
                     cx,
                 );
                 for buffer_id in removed_buffer_ids {
@@ -9558,11 +9529,7 @@ impl Editor {
             }
 
             self.refresh_inlay_hints(
-                InlayHintRefreshReason::SettingsChange(inlay_hint_settings(
-                    self.selections.newest_anchor().head(),
-                    &self.buffer.read(cx).snapshot(cx),
-                    cx,
-                )),
+                InlayHintRefreshReason::SettingsChange,
                 cx,
             );
 
@@ -10121,7 +10088,7 @@ impl Editor {
             self.last_focused_descendant = Some(event.blurred);
         }
         self.selection_drag_state = SelectionDragState::None;
-        self.refresh_inlay_hints(InlayHintRefreshReason::ModifiersChanged(false), cx);
+        self.refresh_inlay_hints(InlayHintRefreshReason::ModifiersChanged, cx);
     }
 
     pub fn handle_blur(&mut self, window: &mut Window, cx: &mut Context<Self>) {

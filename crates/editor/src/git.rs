@@ -106,8 +106,6 @@ pub(super) struct DiffReviewOverlay {
     /// Subscriptions for inline edit editors' action handlers.
     /// Key: comment ID, Value: Subscription keeping the Newline action handler alive.
     pub(super) inline_edit_subscriptions: HashMap<usize, Subscription>,
-    /// The current user's avatar URI for display in comment rows.
-    pub(super) user_avatar_uri: Option<SharedUri>,
     /// Subscription to keep the action handler alive.
     _subscription: Subscription,
 }
@@ -408,15 +406,6 @@ impl Editor {
         // Dismiss overlays that have no comments for their hunks
         self.dismiss_overlays_without_comments(cx);
 
-        // Get the current user's avatar URI from the project's user_store
-        let user_avatar_uri = self.project.as_ref().and_then(|project| {
-            let user_store = project.read(cx).user_store();
-            user_store
-                .read(cx)
-                .current_user()
-                .map(|user| user.avatar_uri.clone())
-        });
-
         // Create anchor at the end of the last row so the block appears immediately below it
         // Use multibuffer coordinates for anchor creation
         let line_len = buffer_snapshot.line_len(end_multi_buffer_row);
@@ -483,7 +472,6 @@ impl Editor {
             comments_expanded: true,
             inline_edit_editors: HashMap::default(),
             inline_edit_subscriptions: HashMap::default(),
-            user_avatar_uri,
             _subscription: subscription,
         });
 
@@ -898,22 +886,6 @@ impl Editor {
         cx: &mut Context<Self>,
     ) {
         self.submit_diff_review_comment(window, cx);
-    }
-
-    /// Returns comments for a specific hunk, ordered by creation time.
-    pub(super) fn comments_for_hunk<'a>(
-        &'a self,
-        key: &DiffHunkKey,
-        snapshot: &MultiBufferSnapshot,
-    ) -> &'a [StoredReviewComment] {
-        let key_point = key.hunk_start_anchor.to_point(snapshot);
-        self.stored_review_comments
-            .iter()
-            .find(|(k, _)| {
-                k.file_path == key.file_path && k.hunk_start_anchor.to_point(snapshot) == key_point
-            })
-            .map(|(_, comments)| comments.as_slice())
-            .unwrap_or(&[])
     }
 
     /// Returns the count of comments for a specific hunk.
@@ -2090,31 +2062,6 @@ impl Editor {
     ) -> AnyElement {
         gpui::Empty.into_any_element()
     }
-
-    fn render_comments_section(
-        _stored_comments: &[StoredReviewComment],
-        _editor_handle: &WeakEntity<Editor>,
-        _hunk_key: &DiffHunkKey,
-        _comments_expanded: bool,
-        _inline_edit_editors: &HashMap<usize, Entity<Editor>>,
-        _user_avatar_uri: Option<SharedUri>,
-        _cx: &mut BlockContext,
-    ) -> AnyElement {
-        gpui::Empty.into_any_element()
-    }
-
-    fn render_comment_row(
-        _comment: &StoredReviewComment,
-        _editor_handle: &WeakEntity<Editor>,
-        _hunk_key: &DiffHunkKey,
-        _is_editing: bool,
-        _inline_editor: Option<&Entity<Editor>>,
-        _user_avatar_uri: Option<SharedUri>,
-        _cx: &mut BlockContext,
-    ) -> AnyElement {
-        gpui::Empty.into_any_element()
-    }
-
 
     fn get_permalink_to_line(&self, cx: &mut Context<Self>) -> Task<Result<url::Url>> {
         let buffer_and_selection = maybe!({

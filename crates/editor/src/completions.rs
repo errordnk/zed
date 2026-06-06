@@ -169,24 +169,6 @@ impl Editor {
             .collect()
     }
 
-    pub(super) fn visible_buffer_ranges(
-        &self,
-        cx: &mut Context<Editor>,
-    ) -> Vec<(
-        BufferSnapshot,
-        Range<BufferOffset>,
-        ExcerptRange<text::Anchor>,
-    )> {
-        let display_snapshot = self.display_snapshot(cx);
-        let visible_range = self.multi_buffer_visible_range(&display_snapshot, cx);
-        display_snapshot
-            .buffer_snapshot()
-            .range_to_buffer_ranges(visible_range)
-            .into_iter()
-            .filter(|(_, excerpt_visible_range, _)| !excerpt_visible_range.is_empty())
-            .collect()
-    }
-
     pub(super) fn trigger_on_type_formatting(
         &self,
         input: String,

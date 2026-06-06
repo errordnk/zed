@@ -1,5 +1,3 @@
-use futures::FutureExt as _;
-use futures::future::Shared;
 use gpui::{Context, Task};
 use language::OutlineItem;
 use multi_buffer::{Anchor, MultiBufferSnapshot};
@@ -48,7 +46,4 @@ impl Editor {
     ) {
     }
 
-    pub(super) fn refresh_document_symbols_task_shared(&self) -> Shared<Task<()>> {
-        Task::ready(()).shared()
-    }
 }

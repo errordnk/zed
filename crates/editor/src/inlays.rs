@@ -19,12 +19,12 @@ pub mod inlay_hints;
 
 use std::sync::OnceLock;
 
-use gpui::{Context, HighlightStyle, Hsla, Rgba, Task};
+use gpui::{Context, Hsla, Rgba, Task};
 use multi_buffer::Anchor;
 use project::{InlayHint, InlayId};
 use text::Rope;
 
-use crate::{Editor, HighlightKey, hover_links::InlayHighlight};
+use crate::Editor;
 
 /// A splice to send into the `inlay_map` for updating the visible inlays on the screen.
 /// "Visible" inlays may not be displayed in the buffer right away, but those are ready to be displayed on further buffer scroll, pane item activations, etc. right away without additional LSP queries or settings changes.
@@ -164,18 +164,6 @@ impl Editor {
         self.display_map.update(cx, |display_map, cx| {
             display_map.splice_inlays(to_remove, to_insert, cx)
         });
-        cx.notify();
-    }
-
-    pub(crate) fn highlight_inlays(
-        &mut self,
-        key: HighlightKey,
-        highlights: Vec<InlayHighlight>,
-        style: HighlightStyle,
-        cx: &mut Context<Self>,
-    ) {
-        self.display_map
-            .update(cx, |map, _| map.highlight_inlays(key, highlights, style));
         cx.notify();
     }
 

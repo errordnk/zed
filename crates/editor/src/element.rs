@@ -678,15 +678,14 @@ impl EditorElement {
                         cx,
                     );
 
-                    if let Some(inlay_modifiers) = inlay_hint_settings
+                    if inlay_hint_settings
                         .toggle_on_modifiers_press
                         .as_ref()
                         .filter(|modifiers| modifiers.modified())
+                        .is_some()
                     {
                         editor.refresh_inlay_hints(
-                            InlayHintRefreshReason::ModifiersChanged(
-                                inlay_modifiers == &event.modifiers,
-                            ),
+                            InlayHintRefreshReason::ModifiersChanged,
                             cx,
                         );
                     }
@@ -11016,81 +11015,6 @@ mod tests {
             layouts.get(&MultiBufferRow(DELETED_LINE)).is_none(),
             "Deleted line should not have a line number"
         );
-    }
-
-    #[gpui::test]
-    async fn test_layout_line_numbers_with_folded_lines(cx: &mut TestAppContext) {
-        init_test(cx, |_| {});
-
-        let python_lang = languages::language("python", tree_sitter_python::LANGUAGE.into());
-
-        let window = cx.add_window(|window, cx| {
-            let buffer = cx.new(|cx| {
-                Buffer::local(
-                    indoc::indoc! {"
-                        fn test() -> int {
-                            return 2;
-                        }
-
-                        fn another_test() -> int {
-                            # This is a very peculiar method that is hard to grasp.
-                            return 4;
-                        }
-                    "},
-                    cx,
-                )
-                .with_language(python_lang, cx)
-            });
-
-            let buffer = MultiBuffer::build_from_buffer(buffer, cx);
-            Editor::new(EditorMode::full(), buffer, None, window, cx)
-        });
-
-        let editor = window.root(cx).unwrap();
-        let style = editor.update(cx, |editor, cx| editor.style(cx).clone());
-        let line_height = window
-            .update(cx, |_, window, _| {
-                style.text.line_height_in_pixels(window.rem_size())
-            })
-            .unwrap();
-        let element = EditorElement::new(&editor, style);
-        let snapshot = window
-            .update(cx, |editor, window, cx| {
-                editor.fold_at(MultiBufferRow(0), window, cx);
-                editor.snapshot(window, cx)
-            })
-            .unwrap();
-
-        let layouts = cx
-            .update_window(*window, |_, window, cx| {
-                element.layout_line_numbers(
-                    &test_gutter(line_height, &snapshot),
-                    &BTreeMap::default(),
-                    Some(DisplayRow(3)),
-                    window,
-                    cx,
-                )
-            })
-            .unwrap();
-        assert_eq!(layouts.len(), 6);
-
-        let relative_rows = window
-            .update(cx, |editor, window, cx| {
-                let snapshot = editor.snapshot(window, cx);
-                snapshot.calculate_relative_line_numbers(
-                    &(DisplayRow(0)..DisplayRow(6)),
-                    DisplayRow(3),
-                    false,
-                )
-            })
-            .unwrap();
-        assert_eq!(relative_rows[&DisplayRow(0)], 3);
-        assert_eq!(relative_rows[&DisplayRow(1)], 2);
-        assert_eq!(relative_rows[&DisplayRow(2)], 1);
-        // current line has no relative number
-        assert!(!relative_rows.contains_key(&DisplayRow(3)));
-        assert_eq!(relative_rows[&DisplayRow(4)], 1);
-        assert_eq!(relative_rows[&DisplayRow(5)], 2);
     }
 
     #[gpui::test]

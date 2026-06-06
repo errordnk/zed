@@ -1,4 +1,4 @@
-use gpui::{App, Context, Task};
+use gpui::{App, Context};
 use settings::Settings as _;
 use text::BufferId;
 use ui::Window;
@@ -9,24 +9,16 @@ use crate::{Editor, actions::ToggleSemanticHighlights};
 
 pub(super) struct SemanticTokenState {
     enabled: bool,
-    update_task: Task<()>,
 }
 
 impl SemanticTokenState {
     pub(super) fn new(cx: &App, enabled: bool) -> Self {
         let _ = ProjectSettings::get_global(cx);
-        Self {
-            enabled,
-            update_task: Task::ready(()),
-        }
+        Self { enabled }
     }
 
     pub(super) fn enabled(&self) -> bool {
         self.enabled
-    }
-
-    pub(super) fn toggle_enabled(&mut self) {
-        self.enabled = !self.enabled;
     }
 
     pub(super) fn invalidate_buffer(&mut self, _buffer_id: &BufferId) {}
